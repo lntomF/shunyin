@@ -3,9 +3,14 @@ import type { AuthError, Session, User } from '@supabase/supabase-js';
 import type { AuthStatus } from '../types/app';
 import { supabase } from '../lib/supabase';
 
-interface AuthCredentials {
+interface AuthOtpRequest {
   email: string;
-  password: string;
+  mode: 'sign_in' | 'sign_up';
+}
+
+interface AuthOtpVerify {
+  email: string;
+  token: string;
 }
 
 export function useAuth() {
@@ -51,10 +56,12 @@ export function useAuth() {
     };
   }, []);
 
-  const signIn = useCallback(async ({ email, password }: AuthCredentials) => {
-    const { error } = await supabase.auth.signInWithPassword({
+  const requestOtp = useCallback(async ({ email, mode }: AuthOtpRequest) => {
+    const { error } = await supabase.auth.signInWithOtp({
       email,
-      password,
+      options: {
+        shouldCreateUser: mode === 'sign_up',
+      },
     });
 
     if (error) {
@@ -62,10 +69,11 @@ export function useAuth() {
     }
   }, []);
 
-  const signUp = useCallback(async ({ email, password }: AuthCredentials) => {
-    const { error } = await supabase.auth.signUp({
+  const verifyOtp = useCallback(async ({ email, token }: AuthOtpVerify) => {
+    const { error } = await supabase.auth.verifyOtp({
       email,
-      password,
+      token,
+      type: 'email',
     });
 
     if (error) {
@@ -84,8 +92,8 @@ export function useAuth() {
     status,
     session,
     user,
-    signIn,
-    signUp,
+    requestOtp,
+    verifyOtp,
     signOut,
   };
 }

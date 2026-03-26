@@ -13,7 +13,8 @@ interface AuthDialogProps {
   successMessage: string | null;
   onClose: () => void;
   onSwitchMode: (mode: AuthMode) => void;
-  onSubmit: (payload: { email: string; password: string; mode: AuthMode }) => void | Promise<void>;
+  onRequestOtp: (payload: { email: string; mode: AuthMode }) => void | Promise<void>;
+  onVerifyOtp: (payload: { email: string; token: string }) => void | Promise<void>;
 }
 
 export function AuthDialog({
@@ -25,15 +26,22 @@ export function AuthDialog({
   successMessage,
   onClose,
   onSwitchMode,
-  onSubmit,
+  onRequestOtp,
+  onVerifyOtp,
 }: AuthDialogProps) {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [token, setToken] = useState('');
+  const [step, setStep] = useState<'request' | 'verify'>('request');
 
   useEffect(() => {
     if (!open) {
-      setPassword('');
+      setToken('');
+      setStep('request');
+      return;
     }
+
+    setToken('');
+    setStep('request');
   }, [open, mode]);
 
   if (!open) {
@@ -49,7 +57,9 @@ export function AuthDialog({
               {mode === 'sign_in' ? dict.authDialogSignInTitle : dict.authDialogSignUpTitle}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
-              {mode === 'sign_in' ? dict.authWelcomeBack : dict.authCreateAccount}
+              {step === 'request'
+                ? (mode === 'sign_in' ? dict.authWelcomeBack : dict.authCreateAccount)
+                : dict.authOtpStepDesc}
             </p>
           </div>
           <button
@@ -64,9 +74,16 @@ export function AuthDialog({
 
         <form
           className="space-y-4 px-6 py-6"
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault();
-            onSubmit({ email: email.trim(), password, mode });
+
+            if (step === 'request') {
+              await onRequestOtp({ email: email.trim(), mode });
+              setStep('verify');
+              return;
+            }
+
+            await onVerifyOtp({ email: email.trim(), token: token.trim() });
           }}
         >
           <label className="block space-y-2">
@@ -77,22 +94,26 @@ export function AuthDialog({
               onChange={(event) => setEmail(event.target.value)}
               required
               autoComplete="email"
-              className="w-full rounded-xl border border-transparent bg-surface-container-high px-4 py-3 text-sm text-primary outline-none transition-colors focus:border-secondary/40"
+              disabled={pending || step === 'verify'}
+              className="w-full rounded-xl border border-transparent bg-surface-container-high px-4 py-3 text-sm text-primary outline-none transition-colors focus:border-secondary/40 disabled:cursor-not-allowed disabled:opacity-60"
             />
           </label>
 
-          <label className="block space-y-2">
-            <span className="block text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">{dict.authPasswordLabel}</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              minLength={6}
-              autoComplete={mode === 'sign_in' ? 'current-password' : 'new-password'}
-              className="w-full rounded-xl border border-transparent bg-surface-container-high px-4 py-3 text-sm text-primary outline-none transition-colors focus:border-secondary/40"
-            />
-          </label>
+          {step === 'verify' && (
+            <label className="block space-y-2">
+              <span className="block text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">{dict.authOtpLabel}</span>
+              <input
+                type="text"
+                value={token}
+                onChange={(event) => setToken(event.target.value.replace(/\s+/g, ''))}
+                required
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder={dict.authOtpPlaceholder}
+                className="w-full rounded-xl border border-transparent bg-surface-container-high px-4 py-3 text-sm tracking-[0.35em] text-primary outline-none transition-colors focus:border-secondary/40"
+              />
+            </label>
+          )}
 
           {errorMessage && (
             <div className="rounded-2xl border border-[#7f3f3f]/40 bg-[#2a1616] px-4 py-3 text-sm text-[#f0b5b5]">
@@ -111,8 +132,21 @@ export function AuthDialog({
             disabled={pending}
             className="w-full rounded-xl bg-primary px-5 py-4 text-sm font-headline font-black uppercase tracking-[0.2em] text-surface transition-transform hover:bg-white active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
           >
-            {pending ? dict.authProcessing : mode === 'sign_in' ? dict.authSubmitSignIn : dict.authSubmitSignUp}
+            {pending ? dict.authProcessing : step === 'request' ? dict.authSendCode : dict.authVerifyCode}
           </button>
+
+          {step === 'verify' && (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={async () => {
+                await onRequestOtp({ email: email.trim(), mode });
+              }}
+              className="w-full rounded-xl border border-outline-variant/20 bg-surface-container-high px-5 py-4 text-sm font-headline font-black uppercase tracking-[0.2em] text-primary transition-colors hover:border-secondary/40 hover:text-secondary disabled:cursor-wait disabled:opacity-60"
+            >
+              {dict.authResendCode}
+            </button>
+          )}
 
           <div className="text-center text-sm text-on-surface-variant">
             {mode === 'sign_in' ? dict.authNoAccount : dict.authHasAccount}{' '}

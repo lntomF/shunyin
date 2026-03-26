@@ -15,8 +15,8 @@ interface HeaderProps {
   userEmail: string | null;
   cloudStatus: CloudSyncStatus;
   cloudMessage: string | null;
-  onSignIn: (payload: { email: string; password: string }) => Promise<void>;
-  onSignUp: (payload: { email: string; password: string }) => Promise<void>;
+  onRequestOtp: (payload: { email: string; mode: 'sign_in' | 'sign_up' }) => Promise<void>;
+  onVerifyOtp: (payload: { email: string; token: string }) => Promise<void>;
   onSignOut: () => Promise<void>;
   onSaveCloud: () => Promise<void>;
 }
@@ -31,8 +31,8 @@ export function Header({
   userEmail,
   cloudStatus,
   cloudMessage,
-  onSignIn,
-  onSignUp,
+  onRequestOtp,
+  onVerifyOtp,
   onSignOut,
   onSaveCloud,
 }: HeaderProps) {
@@ -56,20 +56,29 @@ export function Header({
     setSuccessMessage(null);
   };
 
-  const handleAuthSubmit = async ({ email, password, mode }: { email: string; password: string; mode: 'sign_in' | 'sign_up' }) => {
+  const handleRequestOtp = async ({ email, mode }: { email: string; mode: 'sign_in' | 'sign_up' }) => {
     setPending(true);
     setErrorMessage(null);
     setSuccessMessage(null);
 
     try {
-      if (mode === 'sign_in') {
-        await onSignIn({ email, password });
-        closeDialog();
-        return;
-      }
+      await onRequestOtp({ email, mode });
+      setSuccessMessage(dict.authOtpSent);
+    } catch (error) {
+      setErrorMessage(getAuthErrorMessage(error) ?? dict.authGenericError);
+    } finally {
+      setPending(false);
+    }
+  };
 
-      await onSignUp({ email, password });
-      setSuccessMessage(dict.authCheckEmail);
+  const handleVerifyOtp = async ({ email, token }: { email: string; token: string }) => {
+    setPending(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      await onVerifyOtp({ email, token });
+      closeDialog();
     } catch (error) {
       setErrorMessage(getAuthErrorMessage(error) ?? dict.authGenericError);
     } finally {
@@ -252,7 +261,8 @@ export function Header({
           setErrorMessage(null);
           setSuccessMessage(null);
         }}
-        onSubmit={handleAuthSubmit}
+        onRequestOtp={handleRequestOtp}
+        onVerifyOtp={handleVerifyOtp}
       />
     </>
   );

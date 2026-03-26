@@ -72,8 +72,8 @@ export default function App() {
         userEmail={cloud.profile?.email ?? auth.user?.email ?? null}
         cloudStatus={cloud.status}
         cloudMessage={cloudMessage}
-        onSignIn={auth.signIn}
-        onSignUp={auth.signUp}
+        onRequestOtp={auth.requestOtp}
+        onVerifyOtp={auth.verifyOtp}
         onSignOut={auth.signOut}
         onSaveCloud={async () => {
           const result = await cloud.saveWorkspace({
