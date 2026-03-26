@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Camera, CheckCircle2, CloudUpload, LoaderCircle, LogOut, Settings, UserRound } from 'lucide-react';
 import { AuthDialog } from './auth/AuthDialog';
 import type { Dictionary } from '../i18n/translations';
@@ -15,8 +15,14 @@ interface HeaderProps {
   userEmail: string | null;
   cloudStatus: CloudSyncStatus;
   cloudMessage: string | null;
-  onRequestOtp: (payload: { email: string; mode: 'sign_in' | 'sign_up' }) => Promise<void>;
-  onVerifyOtp: (payload: { email: string; token: string }) => Promise<void>;
+  onSignIn: (payload: { email: string; password: string }) => Promise<void>;
+  onSignUp: (payload: { email: string; password: string }) => Promise<void>;
+  onVerifySignUpOtp: (payload: { email: string; token: string }) => Promise<void>;
+  onResendSignUpOtp: (payload: { email: string }) => Promise<void>;
+  onSendPasswordReset: (payload: { email: string }) => Promise<void>;
+  onUpdatePassword: (payload: { password: string }) => Promise<void>;
+  isRecoveryMode: boolean;
+  onClearRecoveryMode: () => void;
   onSignOut: () => Promise<void>;
   onSaveCloud: () => Promise<void>;
 }
@@ -31,18 +37,35 @@ export function Header({
   userEmail,
   cloudStatus,
   cloudMessage,
-  onRequestOtp,
-  onVerifyOtp,
+  onSignIn,
+  onSignUp,
+  onVerifySignUpOtp,
+  onResendSignUpOtp,
+  onSendPasswordReset,
+  onUpdatePassword,
+  isRecoveryMode,
+  onClearRecoveryMode,
   onSignOut,
   onSaveCloud,
 }: HeaderProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<'sign_in' | 'sign_up'>('sign_in');
+  const [dialogMode, setDialogMode] = useState<'sign_in' | 'sign_up' | 'forgot_password' | 'reset_password'>('sign_in');
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const openDialog = (mode: 'sign_in' | 'sign_up') => {
+  useEffect(() => {
+    if (!isRecoveryMode) {
+      return;
+    }
+
+    setDialogMode('reset_password');
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setDialogOpen(true);
+  }, [isRecoveryMode]);
+
+  const openDialog = (mode: 'sign_in' | 'sign_up' | 'forgot_password' | 'reset_password') => {
     setDialogMode(mode);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -50,19 +73,37 @@ export function Header({
   };
 
   const closeDialog = () => {
+    if (dialogMode === 'reset_password') {
+      onClearRecoveryMode();
+    }
     setDialogOpen(false);
     setPending(false);
     setErrorMessage(null);
     setSuccessMessage(null);
   };
 
-  const handleRequestOtp = async ({ email, mode }: { email: string; mode: 'sign_in' | 'sign_up' }) => {
+  const handleSignIn = async ({ email, password }: { email: string; password: string }) => {
     setPending(true);
     setErrorMessage(null);
     setSuccessMessage(null);
 
     try {
-      await onRequestOtp({ email, mode });
+      await onSignIn({ email, password });
+      closeDialog();
+    } catch (error) {
+      setErrorMessage(getAuthErrorMessage(error) ?? dict.authGenericError);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleSignUp = async ({ email, password }: { email: string; password: string }) => {
+    setPending(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      await onSignUp({ email, password });
       setSuccessMessage(dict.authOtpSent);
     } catch (error) {
       setErrorMessage(getAuthErrorMessage(error) ?? dict.authGenericError);
@@ -71,13 +112,59 @@ export function Header({
     }
   };
 
-  const handleVerifyOtp = async ({ email, token }: { email: string; token: string }) => {
+  const handleVerifySignUpOtp = async ({ email, token }: { email: string; token: string }) => {
     setPending(true);
     setErrorMessage(null);
     setSuccessMessage(null);
 
     try {
-      await onVerifyOtp({ email, token });
+      await onVerifySignUpOtp({ email, token });
+      closeDialog();
+    } catch (error) {
+      setErrorMessage(getAuthErrorMessage(error) ?? dict.authGenericError);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleResendSignUpOtp = async ({ email }: { email: string }) => {
+    setPending(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      await onResendSignUpOtp({ email });
+      setSuccessMessage(dict.authOtpSent);
+    } catch (error) {
+      setErrorMessage(getAuthErrorMessage(error) ?? dict.authGenericError);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleSendPasswordReset = async ({ email }: { email: string }) => {
+    setPending(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      await onSendPasswordReset({ email });
+      setSuccessMessage(dict.authResetEmailSent);
+    } catch (error) {
+      setErrorMessage(getAuthErrorMessage(error) ?? dict.authGenericError);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleUpdatePassword = async ({ password }: { password: string }) => {
+    setPending(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      await onUpdatePassword({ password });
+      onClearRecoveryMode();
       closeDialog();
     } catch (error) {
       setErrorMessage(getAuthErrorMessage(error) ?? dict.authGenericError);
@@ -261,8 +348,12 @@ export function Header({
           setErrorMessage(null);
           setSuccessMessage(null);
         }}
-        onRequestOtp={handleRequestOtp}
-        onVerifyOtp={handleVerifyOtp}
+        onSignIn={handleSignIn}
+        onSignUp={handleSignUp}
+        onVerifySignUpOtp={handleVerifySignUpOtp}
+        onResendSignUpOtp={handleResendSignUpOtp}
+        onSendPasswordReset={handleSendPasswordReset}
+        onUpdatePassword={handleUpdatePassword}
       />
     </>
   );

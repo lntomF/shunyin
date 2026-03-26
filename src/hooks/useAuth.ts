@@ -3,23 +3,36 @@ import type { AuthError, Session, User } from '@supabase/supabase-js';
 import type { AuthStatus } from '../types/app';
 import { supabase } from '../lib/supabase';
 
-interface AuthOtpRequest {
+interface AuthCredentials {
   email: string;
-  mode: 'sign_in' | 'sign_up';
+  password: string;
 }
 
-interface AuthOtpVerify {
+interface VerifySignupOtpPayload {
   email: string;
   token: string;
+}
+
+interface ResendSignupOtpPayload {
+  email: string;
+}
+
+interface UpdatePasswordPayload {
+  password: string;
 }
 
 export function useAuth() {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
+
+    if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
+      setIsRecoveryMode(true);
+    }
 
     supabase.auth.getSession().then(({ data, error }) => {
       if (!isMounted) {
@@ -40,9 +53,13 @@ export function useAuth() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!isMounted) {
         return;
+      }
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsRecoveryMode(true);
       }
 
       setSession(nextSession);
@@ -56,12 +73,10 @@ export function useAuth() {
     };
   }, []);
 
-  const requestOtp = useCallback(async ({ email, mode }: AuthOtpRequest) => {
-    const { error } = await supabase.auth.signInWithOtp({
+  const signIn = useCallback(async ({ email, password }: AuthCredentials) => {
+    const { error } = await supabase.auth.signInWithPassword({
       email,
-      options: {
-        shouldCreateUser: mode === 'sign_up',
-      },
+      password,
     });
 
     if (error) {
@@ -69,7 +84,18 @@ export function useAuth() {
     }
   }, []);
 
-  const verifyOtp = useCallback(async ({ email, token }: AuthOtpVerify) => {
+  const signUp = useCallback(async ({ email, password }: AuthCredentials) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      throw error;
+    }
+  }, []);
+
+  const verifySignupOtp = useCallback(async ({ email, token }: VerifySignupOtpPayload) => {
     const { error } = await supabase.auth.verifyOtp({
       email,
       token,
@@ -78,6 +104,57 @@ export function useAuth() {
 
     if (error) {
       throw error;
+    }
+  }, []);
+
+  const resendSignupOtp = useCallback(async ({ email }: ResendSignupOtpPayload) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+    });
+
+    if (error) {
+      throw error;
+    }
+  }, []);
+
+  const sendPasswordReset = useCallback(async ({ email }: { email: string }) => {
+    const redirectTo = typeof window === 'undefined'
+      ? undefined
+      : `${window.location.origin}${window.location.pathname}${window.location.search}`;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+
+    if (error) {
+      throw error;
+    }
+  }, []);
+
+  const updatePassword = useCallback(async ({ password }: UpdatePasswordPayload) => {
+    const { error } = await supabase.auth.updateUser({
+      password,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    setIsRecoveryMode(false);
+
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const cleanUrl = `${window.location.pathname}${window.location.search}`;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, []);
+
+  const clearRecoveryMode = useCallback(() => {
+    setIsRecoveryMode(false);
+
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const cleanUrl = `${window.location.pathname}${window.location.search}`;
+      window.history.replaceState({}, document.title, cleanUrl);
     }
   }, []);
 
@@ -92,8 +169,14 @@ export function useAuth() {
     status,
     session,
     user,
-    requestOtp,
-    verifyOtp,
+    signIn,
+    signUp,
+    verifySignupOtp,
+    resendSignupOtp,
+    sendPasswordReset,
+    updatePassword,
+    isRecoveryMode,
+    clearRecoveryMode,
     signOut,
   };
 }
