@@ -31,6 +31,7 @@ export interface WorkspaceState {
   selectedStyleId: StyleTemplate['id'];
   workspaceItems: WorkspaceItem[];
   selectedImageId: string;
+  currentCloudWorkspaceId: string | null;
   exportSettings: ExportSettings;
   recentSessions: SessionItem[];
   exportHistory: ExportHistoryItem[];
@@ -47,6 +48,7 @@ interface PersistedWorkspaceState {
   selectedStyleId?: StyleTemplate['id'];
   workspaceItems?: WorkspaceItem[];
   selectedImageId?: string;
+  currentCloudWorkspaceId?: string | null;
   exifData?: ExifData;
   exportSettings?: ExportSettings;
   sourceImage?: WorkspaceImage;
@@ -60,6 +62,7 @@ type Action =
   | { type: 'set_preview_mode'; previewMode: PreviewMode }
   | { type: 'select_style'; styleId: StyleTemplate['id'] }
   | { type: 'select_image'; imageId: string }
+  | { type: 'remove_image'; imageId: string }
   | { type: 'change_exif'; field: keyof ExifData; value: ExifData[keyof ExifData] }
   | { type: 'change_export_settings'; field: keyof ExportSettings; value: ExportSettings[keyof ExportSettings] }
   | { type: 'set_upload_status'; uploadStatus: UploadStatus }
@@ -68,6 +71,8 @@ type Action =
   | { type: 'import_failed'; uploadError: UploadError }
   | { type: 'import_succeeded'; items: WorkspaceItem[]; selectedImageId: string; session: SessionItem }
   | { type: 'open_session'; session: SessionItem }
+  | { type: 'load_session'; session: SessionItem }
+  | { type: 'set_current_cloud_workspace'; workspaceId: string | null }
   | { type: 'use_demo' }
   | { type: 'export_started' }
   | { type: 'export_succeeded'; historyItems: ExportHistoryItem[] }
@@ -175,6 +180,7 @@ function createInitialState(): WorkspaceState {
     selectedStyleId: styleTemplates[0].id,
     workspaceItems: [demoItem],
     selectedImageId: demoItem.id,
+    currentCloudWorkspaceId: null,
     exportSettings: defaultExportSettings,
     recentSessions: normalizeSessions(initialSessions, 'zh'),
     exportHistory: normalizeHistory(initialExportHistory),
@@ -211,6 +217,7 @@ function createInitialState(): WorkspaceState {
       selectedStyleId: parsed.selectedStyleId ?? baseState.selectedStyleId,
       workspaceItems,
       selectedImageId,
+      currentCloudWorkspaceId: parsed.currentCloudWorkspaceId ?? null,
       exportSettings: {
         ...baseState.exportSettings,
         ...parsed.exportSettings,
@@ -243,6 +250,7 @@ function persistState(state: WorkspaceState) {
       image: normalizeImage(item.image),
     })),
     selectedImageId: state.selectedImageId,
+    currentCloudWorkspaceId: state.currentCloudWorkspaceId,
     exportSettings: state.exportSettings,
     recentSessions: normalizeSessions(state.recentSessions, state.language).map((session) => ({
       ...session,
@@ -301,6 +309,32 @@ function reducer(state: WorkspaceState, action: Action): WorkspaceState {
         },
       };
     }
+    case 'remove_image': {
+      const workspaceItems = state.workspaceItems.filter((item) => item.id !== action.imageId);
+      if (!workspaceItems.length) {
+        return state;
+      }
+
+      const selectedItem = getActiveWorkspaceItem(
+        workspaceItems,
+        state.selectedImageId === action.imageId ? workspaceItems[0]?.id ?? demoImage.id : state.selectedImageId,
+      );
+
+      return {
+        ...state,
+        workspaceItems,
+        selectedImageId: selectedItem?.id ?? demoImage.id,
+        exportSettings: {
+          ...state.exportSettings,
+          fileName: selectedItem?.image.name ?? state.exportSettings.fileName,
+        },
+      };
+    }
+    case 'set_current_cloud_workspace':
+      return {
+        ...state,
+        currentCloudWorkspaceId: action.workspaceId,
+      };
     case 'change_exif':
       return {
         ...state,
@@ -337,8 +371,10 @@ function reducer(state: WorkspaceState, action: Action): WorkspaceState {
     case 'import_failed':
       return { ...state, uploadStatus: 'error', uploadError: action.uploadError, notice: null };
     case 'import_succeeded': {
-      const existingLocalItems = state.workspaceItems.filter((item) => item.image.source === 'local');
-      const workspaceItems = existingLocalItems.length ? [...existingLocalItems, ...action.items] : action.items;
+      const preserveExistingItems = state.currentCloudWorkspaceId
+        ? state.workspaceItems
+        : state.workspaceItems.filter((item) => item.image.source === 'local');
+      const workspaceItems = preserveExistingItems.length ? [...preserveExistingItems, ...action.items] : action.items;
       const recentSessions = normalizeSessions(
         [action.session, ...state.recentSessions.filter((session) => session.id !== action.session.id)],
         state.language,
@@ -353,6 +389,7 @@ function reducer(state: WorkspaceState, action: Action): WorkspaceState {
           ...state.exportSettings,
           fileName: selectedItem?.image.name ?? state.exportSettings.fileName,
         },
+        currentCloudWorkspaceId: state.currentCloudWorkspaceId,
         recentSessions,
         currentView: 'editor',
         previewMode: 'processed',
@@ -373,6 +410,26 @@ function reducer(state: WorkspaceState, action: Action): WorkspaceState {
           ...state.exportSettings,
           fileName: selectedItem?.image.name ?? state.exportSettings.fileName,
         },
+        currentCloudWorkspaceId: action.session.cloudWorkspaceId ?? null,
+        currentView: 'editor',
+        previewMode: 'processed',
+        uploadStatus: selectedItem?.image.source === 'local' ? 'ready' : 'idle',
+        uploadError: null,
+        notice: null,
+      };
+    }
+    case 'load_session': {
+      const sessionItems = getSessionItems(action.session, state.language);
+      const selectedItem = getActiveWorkspaceItem(sessionItems, action.session.activeImageId ?? sessionItems[0]?.id ?? demoImage.id);
+      return {
+        ...state,
+        workspaceItems: sessionItems,
+        selectedImageId: selectedItem?.id ?? demoImage.id,
+        exportSettings: {
+          ...state.exportSettings,
+          fileName: selectedItem?.image.name ?? state.exportSettings.fileName,
+        },
+        currentCloudWorkspaceId: action.session.cloudWorkspaceId ?? null,
         currentView: 'editor',
         previewMode: 'processed',
         uploadStatus: selectedItem?.image.source === 'local' ? 'ready' : 'idle',
@@ -386,6 +443,7 @@ function reducer(state: WorkspaceState, action: Action): WorkspaceState {
         ...state,
         workspaceItems: [demoItem],
         selectedImageId: demoItem.id,
+        currentCloudWorkspaceId: null,
         exportSettings: defaultExportSettings,
         currentView: 'editor',
         previewMode: 'processed',
@@ -453,6 +511,10 @@ export function useWorkspaceState() {
 
   const selectImage = useCallback((imageId: string) => {
     dispatch({ type: 'select_image', imageId });
+  }, []);
+
+  const removeImage = useCallback((imageId: string) => {
+    dispatch({ type: 'remove_image', imageId });
   }, []);
 
   const changeExif = useCallback(<K extends keyof ExifData>(field: K, value: ExifData[K]) => {
@@ -556,6 +618,14 @@ export function useWorkspaceState() {
     dispatch({ type: 'use_demo' });
   }, [revokeTrackedObjectUrls]);
 
+  const loadSession = useCallback((session: SessionItem) => {
+    dispatch({ type: 'load_session', session });
+  }, []);
+
+  const setCurrentCloudWorkspace = useCallback((workspaceId: string | null) => {
+    dispatch({ type: 'set_current_cloud_workspace', workspaceId });
+  }, []);
+
   const exportCurrent = useCallback(
     async (selectedStyle: StyleTemplate, styleTitle: string, brandName: string) => {
       dispatch({ type: 'export_started' });
@@ -648,12 +718,15 @@ export function useWorkspaceState() {
       setPreviewMode,
       selectStyle,
       selectImage,
+      removeImage,
       changeExif,
       changeExportSettings,
       setUploadStatus,
       clearNotice,
       importFiles,
       openSession,
+      loadSession,
+      setCurrentCloudWorkspace,
       useDemoImage,
       exportCurrent,
       exportAll,

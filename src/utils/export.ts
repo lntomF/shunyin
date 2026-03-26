@@ -30,7 +30,7 @@ export async function exportRenderedImage({ image, exifData, exportSettings, sel
   const width = image.width ?? baseImage.naturalWidth ?? 1600;
   const height = image.height ?? baseImage.naturalHeight ?? 1000;
   const renderedSize = getRenderedOverlaySize(selectedStyle, width, height);
-  const overlaySrc = createOverlayDataUrl({
+  const overlaySrc = await createOverlayDataUrl({
     width,
     height,
     image,

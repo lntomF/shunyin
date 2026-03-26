@@ -34,12 +34,33 @@ interface ParsedExifTags {
   AFMode?: unknown;
 }
 
+type ExifSource = File | Blob;
+
 export async function loadImageElement(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
+    if (/^https?:\/\//i.test(src)) {
+      image.crossOrigin = 'anonymous';
+    }
     image.onload = () => resolve(image);
     image.onerror = () => reject(new Error('Failed to load image.'));
     image.src = src;
+  });
+}
+
+function blobToDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error('Failed to convert blob to data URL.'));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('Failed to read blob.'));
+    reader.readAsDataURL(blob);
   });
 }
 
@@ -200,8 +221,8 @@ function formatColorSpace(value: unknown) {
   return text;
 }
 
-async function readExifOverrides(file: File): Promise<Partial<ExifData>> {
-  const metadata = await parseExif(file, {
+async function parseExifOverrides(source: ExifSource): Promise<Partial<ExifData>> {
+  const metadata = await parseExif(source, {
     tiff: true,
     ifd0: {},
     exif: true,
@@ -236,6 +257,40 @@ async function readExifOverrides(file: File): Promise<Partial<ExifData>> {
   };
 }
 
+async function readExifOverrides(file: File): Promise<Partial<ExifData>> {
+  return parseExifOverrides(file);
+}
+
+const dataUrlCache = new Map<string, Promise<string>>();
+
+export function resolveImageDataUrl(src: string) {
+  if (!/^https?:\/\//i.test(src)) {
+    return Promise.resolve(src);
+  }
+
+  const cached = dataUrlCache.get(src);
+  if (cached) {
+    return cached;
+  }
+
+  const pending = fetch(src)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image source: ${response.status}`);
+      }
+
+      return response.blob();
+    })
+    .then(blobToDataUrl)
+    .catch((error) => {
+      dataUrlCache.delete(src);
+      throw error;
+    });
+
+  dataUrlCache.set(src, pending);
+  return pending;
+}
+
 export function getLocalExifFallbacks(language: Language): Omit<ExifData, 'fileSize' | 'resolution'> {
   if (language === 'zh') {
     return {
@@ -262,6 +317,20 @@ export function getLocalExifFallbacks(language: Language): Omit<ExifData, 'fileS
     metering: 'Metering unavailable',
     focusMode: 'Photo imported',
   };
+}
+
+export async function readExifOverridesFromBlob(blob: Blob) {
+  return parseExifOverrides(blob);
+}
+
+export async function readExifOverridesFromUrl(url: string) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch EXIF source: ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  return readExifOverridesFromBlob(blob);
 }
 
 function createImageId() {

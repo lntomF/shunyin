@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Clock3, FolderOpen, ImagePlus, Images, Upload } from 'lucide-react';
+import { Clock3, FolderOpen, ImagePlus, Images, Trash2, Upload } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { Dictionary } from '../../i18n/translations';
 import type { Language, SessionItem, UploadError, UploadStatus, WorkspaceImage } from '../../types/app';
@@ -10,6 +10,8 @@ interface HomeViewProps {
   dict: Dictionary;
   language: Language;
   sessions: SessionItem[];
+  cloudSessions: SessionItem[];
+  showCloudSessions: boolean;
   sourceImage: WorkspaceImage;
   workspaceCount: number;
   uploadStatus: UploadStatus;
@@ -17,6 +19,9 @@ interface HomeViewProps {
   onImportFiles: (files: File[]) => void | Promise<void>;
   onUploadStatusChange: (status: UploadStatus) => void;
   onOpenSession: (sessionId: string) => void;
+  onOpenCloudSession: (session: SessionItem) => void | Promise<void>;
+  onDeleteCloudSession: (session: SessionItem) => void | Promise<void>;
+  deletingCloudWorkspaceId?: string | null;
   onContinueEditing: () => void;
   onUseDemo: () => void;
 }
@@ -25,6 +30,8 @@ export function HomeView({
   dict,
   language,
   sessions,
+  cloudSessions,
+  showCloudSessions,
   sourceImage,
   workspaceCount,
   uploadStatus,
@@ -32,6 +39,9 @@ export function HomeView({
   onImportFiles,
   onUploadStatusChange,
   onOpenSession,
+  onOpenCloudSession,
+  onDeleteCloudSession,
+  deletingCloudWorkspaceId = null,
   onContinueEditing,
   onUseDemo,
 }: HomeViewProps) {
@@ -127,7 +137,7 @@ export function HomeView({
                 <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">{dict.currentWorkspace}</div>
                 <div className="mt-2 font-headline text-xl font-bold text-primary">{sourceImage.name}</div>
                 <div className="mt-2 flex flex-wrap gap-3 text-xs text-on-surface-variant">
-                  <span>{sourceImage.source === 'local' ? dict.localSource : dict.demoSource}</span>
+                  <span>{sourceImage.source === 'local' ? dict.localSource : sourceImage.source === 'cloud' ? dict.cloudSource : dict.demoSource}</span>
                   <span>{workspaceCount} {dict.itemsLabel}</span>
                 </div>
               </div>
@@ -183,6 +193,63 @@ export function HomeView({
       </section>
 
       <section className="space-y-8">
+        {showCloudSessions && (
+          <>
+            <div className="flex items-baseline justify-between border-b border-outline-variant/10 pb-4">
+              <div>
+                <h4 className="font-headline text-xs font-bold uppercase tracking-[0.2em] text-on-surface-variant">{dict.cloudSessionsTitle}</h4>
+                <p className="mt-2 text-xs text-outline">{dict.cloudSessionsDesc}</p>
+              </div>
+              <span className="text-[10px] uppercase tracking-widest text-secondary">{cloudSessions.length} {dict.itemsLabel}</span>
+            </div>
+
+            {cloudSessions.length ? (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-4 lg:grid-cols-5">
+                {cloudSessions.map((session) => (
+                  <div
+                    key={session.id}
+                    className="group relative aspect-square overflow-hidden rounded-2xl bg-surface-container-lowest text-left"
+                  >
+                    <button
+                      onClick={() => onOpenCloudSession(session)}
+                      className="h-full w-full text-left"
+                    >
+                      <img
+                        src={session.coverSrc}
+                        alt={session.title}
+                        className="h-full w-full object-cover opacity-70 shutter-transition group-hover:scale-105 group-hover:opacity-95"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4 pr-16">
+                        <div className="text-[9px] uppercase tracking-[0.22em] text-secondary">{dict.openCloudWorkspace}</div>
+                        <div className="mt-2 font-headline text-sm font-bold text-primary">{session.title}</div>
+                        <div className="mt-2 flex items-center gap-3 text-[10px] uppercase tracking-[0.18em] text-on-surface-variant">
+                          <span className="flex items-center gap-1"><Images size={12} /> {session.itemCount} {dict.itemsLabel}</span>
+                          <span>{formatRelativeTime(session.updatedAt, language)}</span>
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteCloudSession(session)}
+                      disabled={deletingCloudWorkspaceId === session.cloudWorkspaceId}
+                      className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-black/45 text-primary backdrop-blur-sm transition-colors hover:bg-black/65 disabled:cursor-wait disabled:opacity-60"
+                      aria-label={dict.deleteCloudWorkspace}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-surface-container-low p-5 text-sm text-on-surface-variant ghost-border">
+                {dict.cloudEmpty}
+              </div>
+            )}
+          </>
+        )}
+
         <div className="flex items-baseline justify-between border-b border-outline-variant/10 pb-4">
           <div>
             <h4 className="font-headline text-xs font-bold uppercase tracking-[0.2em] text-on-surface-variant">{dict.sessionsTitle}</h4>

@@ -4,6 +4,7 @@ import { PortraitGalleryCardTemplate } from '../components/watermark/PortraitGal
 import { WhiteFooterBrandTemplate } from '../components/watermark/WhiteFooterBrandTemplate';
 import type { WatermarkSvgProps } from '../components/watermark/types';
 import type { ExifData, StyleTemplate, WorkspaceImage } from '../types/app';
+import { resolveImageDataUrl } from './image';
 
 interface OverlayOptions {
   width: number;
@@ -118,9 +119,11 @@ export function getRenderedOverlaySize(styleTemplate: StyleTemplate, sourceWidth
   }
 }
 
-export function buildOverlaySvg({ width, height, image, exifData, styleTemplate, styleTitle, brandName }: OverlayOptions) {
+function buildOverlaySvgMarkup(
+  { width, height, image, exifData, styleTemplate, styleTitle, brandName }: OverlayOptions,
+  imageHref: string,
+) {
   const Renderer = WATERMARK_RENDERERS[styleTemplate.styleType];
-  const imageHref = image.persistedSrc ?? image.objectUrl ?? image.src;
   const renderedSize = getRenderedOverlaySize(styleTemplate, width, height);
 
   return renderToStaticMarkup(
@@ -140,7 +143,17 @@ export function buildOverlaySvg({ width, height, image, exifData, styleTemplate,
   );
 }
 
-export function createOverlayDataUrl(options: OverlayOptions) {
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(buildOverlaySvg(options))}`;
+async function resolveOverlayImageHref(image: WorkspaceImage) {
+  const candidate = image.persistedSrc ?? image.objectUrl ?? image.src;
+  return resolveImageDataUrl(candidate);
+}
+
+export async function buildOverlaySvg(options: OverlayOptions) {
+  const imageHref = await resolveOverlayImageHref(options.image);
+  return buildOverlaySvgMarkup(options, imageHref);
+}
+
+export async function createOverlayDataUrl(options: OverlayOptions) {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(await buildOverlaySvg(options))}`;
 }
 

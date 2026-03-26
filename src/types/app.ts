@@ -10,6 +10,9 @@ export type UploadStatus = 'idle' | 'dragging' | 'loading' | 'ready' | 'error';
 
 export type ExportStatus = 'idle' | 'rendering' | 'done' | 'error';
 
+export type AuthStatus = 'loading' | 'authenticated' | 'anonymous';
+export type CloudSyncStatus = 'idle' | 'loading' | 'saving' | 'saved' | 'error';
+
 export type UploadError = 'invalid_type' | 'file_too_large' | 'import_failed' | null;
 
 export type WorkspaceNotice = 'import_ready' | 'export_done' | 'export_failed' | null;
@@ -46,12 +49,14 @@ export interface WorkspaceImage {
   name: string;
   src: string;
   persistedSrc?: string;
+  storageOriginalPath?: string;
+  storagePreviewPath?: string;
   objectUrl?: string;
   width?: number;
   height?: number;
   sizeBytes?: number;
   mimeType?: string;
-  source: 'demo' | 'local';
+  source: 'demo' | 'local' | 'cloud';
   createdAt: string;
 }
 
@@ -67,7 +72,8 @@ export interface SessionItem {
   coverSrc: string;
   updatedAt: string;
   itemCount: number;
-  source: 'demo' | 'local';
+  source: 'demo' | 'local' | 'cloud';
+  cloudWorkspaceId?: string;
   items?: WorkspaceItem[];
   activeImageId?: string;
   image: WorkspaceImage;
@@ -84,4 +90,13 @@ export interface ExportHistoryItem {
   createdAt: string;
   status: 'ready' | 'downloaded';
   previewSrc: string;
+}
+
+export interface ProfileRecord {
+  id: string;
+  email: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  created_at?: string;
+  updated_at?: string;
 }

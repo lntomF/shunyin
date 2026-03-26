@@ -19,6 +19,8 @@ interface ExportViewProps {
   selectedStyle: StyleTemplate;
   selectedStyleTitle: string;
   onSelectImage: (imageId: string) => void;
+  onDeleteImage?: (imageId: string) => void | Promise<void>;
+  deletingImageId?: string | null;
   onExportSettingsChange: <K extends keyof ExportSettings>(field: K, value: ExportSettings[K]) => void;
   onExportCurrent: () => void | Promise<void>;
   onExportAll: () => void | Promise<void>;
@@ -38,6 +40,8 @@ export function ExportView({
   selectedStyle,
   selectedStyleTitle,
   onSelectImage,
+  onDeleteImage,
+  deletingImageId = null,
   onExportSettingsChange,
   onExportCurrent,
   onExportAll,
@@ -69,6 +73,9 @@ export function ExportView({
           items={workspaceItems}
           selectedImageId={selectedImageId}
           onSelectImage={onSelectImage}
+          onDeleteItem={onDeleteImage}
+          deletingImageId={deletingImageId}
+          deleteLabel={dict.deleteCloudPhoto}
         />
       </section>
 

@@ -1,3 +1,4 @@
+import { Trash2 } from 'lucide-react';
 import type { WorkspaceItem } from '../types/app';
 
 interface WorkspaceStripProps {
@@ -5,9 +6,20 @@ interface WorkspaceStripProps {
   items: WorkspaceItem[];
   selectedImageId: string;
   onSelectImage: (imageId: string) => void;
+  onDeleteItem?: (imageId: string) => void | Promise<void>;
+  deletingImageId?: string | null;
+  deleteLabel?: string;
 }
 
-export function WorkspaceStrip({ title, items, selectedImageId, onSelectImage }: WorkspaceStripProps) {
+export function WorkspaceStrip({
+  title,
+  items,
+  selectedImageId,
+  onSelectImage,
+  onDeleteItem,
+  deletingImageId = null,
+  deleteLabel = 'Delete photo',
+}: WorkspaceStripProps) {
   return (
     <section className="space-y-4 rounded-2xl bg-surface-container-low p-5 ghost-border">
       <div className="flex items-center justify-between gap-4">
@@ -21,29 +33,44 @@ export function WorkspaceStrip({ title, items, selectedImageId, onSelectImage }:
         {items.map((item) => {
           const isSelected = item.id === selectedImageId;
           return (
-            <button
+            <div
               key={item.id}
-              type="button"
-              onClick={() => onSelectImage(item.id)}
-              className={`group min-w-[156px] overflow-hidden rounded-2xl border text-left transition-all ${
+              className={`group relative min-w-[156px] overflow-hidden rounded-2xl border text-left transition-all ${
                 isSelected
                   ? 'border-secondary/50 bg-surface-container-high'
                   : 'border-outline-variant/10 bg-surface-container-lowest hover:border-secondary/30'
               }`}
             >
-              <div className="aspect-[4/5] overflow-hidden bg-surface-container-low">
-                <img
-                  src={item.image.objectUrl ?? item.image.src}
-                  alt={item.image.name}
-                  className={`h-full w-full object-cover shutter-transition ${isSelected ? 'scale-[1.02] opacity-100' : 'opacity-85 group-hover:scale-105 group-hover:opacity-100'}`}
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-              <div className="space-y-1 px-3 py-3">
-                <div className="truncate font-headline text-sm font-bold text-primary">{item.image.name}</div>
-                <div className="truncate text-[10px] uppercase tracking-[0.18em] text-on-surface-variant">{item.exifData.resolution}</div>
-              </div>
-            </button>
+              <button
+                type="button"
+                onClick={() => onSelectImage(item.id)}
+                className="block w-full text-left"
+              >
+                <div className="aspect-[4/5] overflow-hidden bg-surface-container-low">
+                  <img
+                    src={item.image.objectUrl ?? item.image.src}
+                    alt={item.image.name}
+                    className={`h-full w-full object-cover shutter-transition ${isSelected ? 'scale-[1.02] opacity-100' : 'opacity-85 group-hover:scale-105 group-hover:opacity-100'}`}
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <div className="space-y-1 px-3 py-3">
+                  <div className="truncate font-headline text-sm font-bold text-primary">{item.image.name}</div>
+                  <div className="truncate text-[10px] uppercase tracking-[0.18em] text-on-surface-variant">{item.exifData.resolution}</div>
+                </div>
+              </button>
+              {onDeleteItem && items.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => onDeleteItem(item.id)}
+                  disabled={deletingImageId === item.id}
+                  className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/45 text-primary backdrop-blur-sm transition-colors hover:bg-black/65 disabled:cursor-wait disabled:opacity-60"
+                  aria-label={deleteLabel}
+                >
+                  <Trash2 size={13} />
+                </button>
+              )}
+            </div>
           );
         })}
       </div>

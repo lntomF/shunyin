@@ -16,6 +16,8 @@ interface EditorViewProps {
   selectedStyleTitle: string;
   styleTemplates: StyleTemplate[];
   onSelectImage: (imageId: string) => void;
+  onDeleteImage?: (imageId: string) => void | Promise<void>;
+  deletingImageId?: string | null;
   onExifChange: <K extends keyof ExifData>(field: K, value: ExifData[K]) => void;
   onPreviewModeChange: (mode: PreviewMode) => void;
   onSelectStyle: (id: StyleTemplate['id']) => void;
@@ -33,6 +35,8 @@ export function EditorView({
   selectedStyleTitle,
   styleTemplates,
   onSelectImage,
+  onDeleteImage,
+  deletingImageId = null,
   onExifChange,
   onPreviewModeChange,
   onSelectStyle,
@@ -52,6 +56,9 @@ export function EditorView({
           items={workspaceItems}
           selectedImageId={selectedImageId}
           onSelectImage={onSelectImage}
+          onDeleteItem={onDeleteImage}
+          deletingImageId={deletingImageId}
+          deleteLabel={dict.deleteCloudPhoto}
         />
       </section>
 
