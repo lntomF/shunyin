@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;700;800&family=Inter:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-surface-bright: #2b2c2c;
+  --color-surface-container-high: #1f2020;
+  --color-on-surface: #e7e5e5;
+  --color-on-surface-variant: #acabaa;
+  --color-surface-container-low: #131313;
+  --color-surface: #0e0e0e;
+  --color-secondary: #51a4e4;
+  --color-primary: #c6c6c6;
+  --color-tertiary: #ffc87f;
+  --color-surface-variant: #252626;
+  --color-outline-variant: #484848;
+  --color-outline: #767575;
+  --color-surface-container: #191a1a;
+  --color-surface-container-highest: #252626;
+  --color-surface-container-lowest: #000000;
+  --color-background: #0e0e0e;
+
+  --font-headline: 'Manrope', sans-serif;
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+@layer utilities {
+  .shutter-transition {
+    transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+  }
+  .glass-panel {
+    @apply bg-surface-container-highest/70 backdrop-blur-md;
+  }
+  .ghost-border {
+    @apply border border-outline-variant/15;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+body {
+  @apply bg-background text-on-surface font-sans antialiased selection:bg-secondary/30 selection:text-secondary;
+  min-height: max(884px, 100dvh);
+}
