@@ -19,6 +19,7 @@ import type {
 import { exportRenderedImage } from '../utils/export';
 import { formatBytes, formatResolution } from '../utils/format';
 import { ACCEPTED_IMAGE_TYPES, MAX_FILE_SIZE, getLocalExifFallbacks, importImageFile } from '../utils/image';
+import { getLocalImageBlobs, saveLocalImageBlob } from '../utils/localImageStore';
 
 const STORAGE_KEY = 'shunyin.workspace.v2';
 const MAX_SESSIONS = 6;
@@ -73,6 +74,7 @@ type Action =
   | { type: 'open_session'; session: SessionItem }
   | { type: 'load_session'; session: SessionItem }
   | { type: 'set_current_cloud_workspace'; workspaceId: string | null }
+  | { type: 'hydrate_local_sources'; images: Array<{ id: string; objectUrl: string }> }
   | { type: 'use_demo' }
   | { type: 'export_started' }
   | { type: 'export_succeeded'; historyItems: ExportHistoryItem[] }
@@ -335,6 +337,34 @@ function reducer(state: WorkspaceState, action: Action): WorkspaceState {
         ...state,
         currentCloudWorkspaceId: action.workspaceId,
       };
+    case 'hydrate_local_sources': {
+      const objectUrls = new Map(action.images.map((entry) => [entry.id, entry.objectUrl]));
+      let changed = false;
+
+      const workspaceItems = state.workspaceItems.map((item) => {
+        const objectUrl = objectUrls.get(item.id);
+        if (!objectUrl || item.image.source !== 'local') {
+          return item;
+        }
+
+        changed = true;
+        return {
+          ...item,
+          image: {
+            ...item.image,
+            src: objectUrl,
+            objectUrl,
+          },
+        };
+      });
+
+      return changed
+        ? {
+            ...state,
+            workspaceItems,
+          }
+        : state;
+    }
     case 'change_exif':
       return {
         ...state,
@@ -472,6 +502,7 @@ function reducer(state: WorkspaceState, action: Action): WorkspaceState {
 export function useWorkspaceState() {
   const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
   const objectUrlsRef = useRef<Map<string, string>>(new Map());
+  const missingLocalImageIdsRef = useRef<Set<string>>(new Set());
 
   const activeItem = useMemo(
     () => getActiveWorkspaceItem(state.workspaceItems, state.selectedImageId) ?? createWorkspaceItem(demoImage, state.language, defaultExifData),
@@ -489,9 +520,70 @@ export function useWorkspaceState() {
     objectUrlsRef.current.clear();
   }, []);
 
+  const trackObjectUrl = useCallback((id: string, url: string) => {
+    const previousUrl = objectUrlsRef.current.get(id);
+    if (previousUrl && previousUrl !== url) {
+      URL.revokeObjectURL(previousUrl);
+    }
+
+    objectUrlsRef.current.set(id, url);
+  }, []);
+
   useEffect(() => () => {
     revokeTrackedObjectUrls();
   }, [revokeTrackedObjectUrls]);
+
+  useEffect(() => {
+    const pendingIds = Array.from(new Set(
+      state.workspaceItems
+        .filter((item) => item.image.source === 'local' && !item.image.objectUrl)
+        .map((item) => item.id),
+    )).filter((id) => !missingLocalImageIdsRef.current.has(id));
+
+    if (!pendingIds.length) {
+      return;
+    }
+
+    let active = true;
+
+    getLocalImageBlobs(pendingIds)
+      .then((blobs) => {
+        if (!active) {
+          return;
+        }
+
+        const hydratedImages: Array<{ id: string; objectUrl: string }> = [];
+
+        for (const id of pendingIds) {
+          const blob = blobs.get(id);
+          if (!blob) {
+            missingLocalImageIdsRef.current.add(id);
+            continue;
+          }
+
+          const objectUrl = URL.createObjectURL(blob);
+          trackObjectUrl(id, objectUrl);
+          hydratedImages.push({ id, objectUrl });
+        }
+
+        if (hydratedImages.length) {
+          dispatch({ type: 'hydrate_local_sources', images: hydratedImages });
+        }
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+
+        for (const id of pendingIds) {
+          missingLocalImageIdsRef.current.add(id);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [state.workspaceItems, trackObjectUrl]);
 
   const setCurrentView = useCallback((view: ViewType) => {
     dispatch({ type: 'set_view', view });
@@ -562,10 +654,13 @@ export function useWorkspaceState() {
 
           importedItems.push(item);
           createdUrls.push({ id: item.id, url: objectUrl });
+          await saveLocalImageBlob(item.id, file).catch(() => {
+            // Ignore IndexedDB failures and keep the current session usable in memory.
+          });
         }
 
         for (const entry of createdUrls) {
-          objectUrlsRef.current.set(entry.id, entry.url);
+          trackObjectUrl(entry.id, entry.url);
         }
 
         const firstItem = importedItems[0];
@@ -600,7 +695,7 @@ export function useWorkspaceState() {
         dispatch({ type: 'import_failed', uploadError: 'import_failed' });
       }
     },
-    [state.language],
+    [state.language, trackObjectUrl],
   );
 
   const openSession = useCallback((sessionId: string) => {

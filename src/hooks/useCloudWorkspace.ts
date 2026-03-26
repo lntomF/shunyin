@@ -23,6 +23,21 @@ interface DeletePhotoResult {
   session: SessionItem | null;
 }
 
+const STORED_EXIF_KEYS = [
+  'cameraBody',
+  'lens',
+  'aperture',
+  'shutter',
+  'iso',
+  'colorSpace',
+  'bitDepth',
+  'metering',
+  'focusMode',
+] as const;
+
+type StoredExifKey = typeof STORED_EXIF_KEYS[number];
+type StoredExifData = Pick<ExifData, StoredExifKey>;
+
 interface CloudPhotoRecord {
   id: string;
   file_name: string;
@@ -33,6 +48,7 @@ interface CloudPhotoRecord {
   height: number | null;
   size_bytes: number | null;
   created_at: string;
+  exif_overrides?: Partial<StoredExifData> | null;
 }
 
 interface CloudWorkspaceRecord {
@@ -65,6 +81,21 @@ interface CloudPhotoWithExif extends ResolvedCloudPhotoRecord {
   resolvedExifData: Partial<ExifData>;
 }
 
+interface PhotoMutationRow {
+  file_name: string;
+  original_url: string;
+  preview_url: string;
+  mime_type: string | null;
+  width: number | null;
+  height: number | null;
+  size_bytes: number | null;
+  exif_overrides: StoredExifData;
+}
+
+interface PhotoUpdateRow extends PhotoMutationRow {
+  id: string;
+}
+
 function buildWorkspaceTitle(items: WorkspaceItem[]) {
   const first = items[0];
   if (!first) {
@@ -75,6 +106,198 @@ function buildWorkspaceTitle(items: WorkspaceItem[]) {
 }
 
 const STORAGE_BUCKET = import.meta.env.VITE_SUPABASE_STORAGE_BUCKET || 'workspace-images';
+const BASE_PHOTO_SELECT = `
+        id,
+        file_name,
+        original_url,
+        preview_url,
+        mime_type,
+        width,
+        height,
+        size_bytes,
+        created_at
+`;
+const PHOTO_SELECT_WITH_EXIF = `${BASE_PHOTO_SELECT},
+        exif_overrides`;
+
+let photoExifColumnSupport: 'unknown' | 'available' | 'missing' = 'unknown';
+
+function getWorkspaceSelectClause(includeExifOverrides: boolean) {
+  const photoFields = includeExifOverrides ? PHOTO_SELECT_WITH_EXIF : BASE_PHOTO_SELECT;
+
+  return `
+      id,
+      title,
+      cover_url,
+      source_type,
+      created_at,
+      updated_at,
+      photos (
+${photoFields}
+      )
+    `;
+}
+
+function isMissingPhotoExifColumn(error: { message?: string | null; details?: string | null; hint?: string | null } | null) {
+  if (!error) {
+    return false;
+  }
+
+  const detail = [error.message, error.details, error.hint].filter(Boolean).join(' ').toLowerCase();
+  return detail.includes('exif_overrides') && detail.includes('column');
+}
+
+function normalizeStoredExifData(value: unknown): Partial<StoredExifData> | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const normalized: Partial<StoredExifData> = {};
+
+  for (const key of STORED_EXIF_KEYS) {
+    if (typeof record[key] === 'string') {
+      normalized[key] = record[key];
+    }
+  }
+
+  return Object.keys(normalized).length ? normalized : null;
+}
+
+function serializeExifOverrides(exifData: ExifData): StoredExifData {
+  return {
+    cameraBody: exifData.cameraBody,
+    lens: exifData.lens,
+    aperture: exifData.aperture,
+    shutter: exifData.shutter,
+    iso: exifData.iso,
+    colorSpace: exifData.colorSpace,
+    bitDepth: exifData.bitDepth,
+    metering: exifData.metering,
+    focusMode: exifData.focusMode,
+  };
+}
+
+async function fetchWorkspaceRecord(workspaceId: string) {
+  const includeExifOverrides = photoExifColumnSupport !== 'missing';
+  let query = supabase
+    .from('workspaces')
+    .select(getWorkspaceSelectClause(includeExifOverrides))
+    .eq('id', workspaceId)
+    .single();
+
+  let { data, error } = await query;
+
+  if (error && includeExifOverrides && isMissingPhotoExifColumn(error)) {
+    photoExifColumnSupport = 'missing';
+    ({ data, error } = await supabase
+      .from('workspaces')
+      .select(getWorkspaceSelectClause(false))
+      .eq('id', workspaceId)
+      .single());
+  } else if (!error && includeExifOverrides) {
+    photoExifColumnSupport = 'available';
+  }
+
+  if (error) {
+    throw error;
+  }
+
+  return data as CloudWorkspaceRecord;
+}
+
+async function listWorkspaceRecords(userId: string) {
+  const includeExifOverrides = photoExifColumnSupport !== 'missing';
+  let query = supabase
+    .from('workspaces')
+    .select(getWorkspaceSelectClause(includeExifOverrides))
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false });
+
+  let { data, error } = await query;
+
+  if (error && includeExifOverrides && isMissingPhotoExifColumn(error)) {
+    photoExifColumnSupport = 'missing';
+    ({ data, error } = await supabase
+      .from('workspaces')
+      .select(getWorkspaceSelectClause(false))
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false }));
+  } else if (!error && includeExifOverrides) {
+    photoExifColumnSupport = 'available';
+  }
+
+  return {
+    data: (data ?? []) as CloudWorkspaceRecord[],
+    error,
+  };
+}
+
+function buildPhotoMutationPayload(row: PhotoMutationRow, includeExifOverrides: boolean) {
+  return {
+    file_name: row.file_name,
+    original_url: row.original_url,
+    preview_url: row.preview_url,
+    mime_type: row.mime_type,
+    width: row.width,
+    height: row.height,
+    size_bytes: row.size_bytes,
+    ...(includeExifOverrides ? { exif_overrides: row.exif_overrides } : {}),
+  };
+}
+
+async function insertPhotoRows(workspaceId: string, rows: PhotoMutationRow[]) {
+  const includeExifOverrides = photoExifColumnSupport !== 'missing';
+  let { data, error } = await supabase
+    .from('photos')
+    .insert(
+      rows.map((row) => ({
+        workspace_id: workspaceId,
+        ...buildPhotoMutationPayload(row, includeExifOverrides),
+      })),
+    )
+    .select('id, original_url, preview_url');
+
+  if (error && includeExifOverrides && isMissingPhotoExifColumn(error)) {
+    photoExifColumnSupport = 'missing';
+    ({ data, error } = await supabase
+      .from('photos')
+      .insert(
+        rows.map((row) => ({
+          workspace_id: workspaceId,
+          ...buildPhotoMutationPayload(row, false),
+        })),
+      )
+      .select('id, original_url, preview_url'));
+  } else if (!error && includeExifOverrides) {
+    photoExifColumnSupport = 'available';
+  }
+
+  return {
+    data: (data ?? []) as InsertedPhotoRecord[],
+    error,
+  };
+}
+
+async function updatePhotoRow(row: PhotoUpdateRow) {
+  const includeExifOverrides = photoExifColumnSupport !== 'missing';
+  let { error } = await supabase
+    .from('photos')
+    .update(buildPhotoMutationPayload(row, includeExifOverrides))
+    .eq('id', row.id);
+
+  if (error && includeExifOverrides && isMissingPhotoExifColumn(error)) {
+    photoExifColumnSupport = 'missing';
+    ({ error } = await supabase
+      .from('photos')
+      .update(buildPhotoMutationPayload(row, false))
+      .eq('id', row.id));
+  } else if (!error && includeExifOverrides) {
+    photoExifColumnSupport = 'available';
+  }
+
+  return { error };
+}
 
 function isDirectUrl(value: string | null) {
   if (!value) {
@@ -123,38 +346,6 @@ async function hydrateWorkspaceRecord(workspace: CloudWorkspaceRecord): Promise<
     cover_url: resolvedCoverUrl,
     photos: resolvedPhotos,
   };
-}
-
-async function fetchWorkspaceRecord(workspaceId: string) {
-  const { data, error } = await supabase
-    .from('workspaces')
-    .select(`
-      id,
-      title,
-      cover_url,
-      source_type,
-      created_at,
-      updated_at,
-      photos (
-        id,
-        file_name,
-        original_url,
-        preview_url,
-        mime_type,
-        width,
-        height,
-        size_bytes,
-        created_at
-      )
-    `)
-    .eq('id', workspaceId)
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data as CloudWorkspaceRecord;
 }
 
 async function fetchHydratedWorkspace(workspaceId: string) {
@@ -211,7 +402,7 @@ function toCloudSession(workspace: ResolvedCloudWorkspaceRecord, language: Langu
   const items: WorkspaceItem[] = photos.map((photo) => ({
     id: photo.id,
     image: toWorkspaceImage(photo, workspace),
-    exifData: buildCloudExif(photo, language),
+    exifData: buildCloudExif(photo, language, normalizeStoredExifData(photo.exif_overrides) ?? undefined),
   }));
 
   const featured = items[0];
@@ -235,6 +426,11 @@ function toCloudSession(workspace: ResolvedCloudWorkspaceRecord, language: Langu
 }
 
 async function resolvePhotoExif(photo: ResolvedCloudPhotoRecord) {
+  const storedExif = normalizeStoredExifData(photo.exif_overrides);
+  if (storedExif) {
+    return storedExif;
+  }
+
   const sourceUrl = photo.resolved_original_url ?? photo.resolved_preview_url;
   if (!sourceUrl) {
     return {};
@@ -316,29 +512,7 @@ export function useCloudWorkspace(user: User | null, language: Language) {
         .select('id, email, display_name, avatar_url, created_at, updated_at')
         .eq('id', user.id)
         .single(),
-      supabase
-        .from('workspaces')
-        .select(`
-          id,
-          title,
-          cover_url,
-          source_type,
-          created_at,
-          updated_at,
-          photos (
-            id,
-            file_name,
-            original_url,
-            preview_url,
-            mime_type,
-            width,
-            height,
-            size_bytes,
-            created_at
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false }),
+      listWorkspaceRecords(user.id),
     ]);
 
     if (profileError) {
@@ -356,7 +530,7 @@ export function useCloudWorkspace(user: User | null, language: Language) {
       return;
     }
 
-    const hydratedWorkspaces = await Promise.all(((workspaceData ?? []) as CloudWorkspaceRecord[]).map(hydrateWorkspaceRecord));
+    const hydratedWorkspaces = await Promise.all((workspaceData ?? []).map(hydrateWorkspaceRecord));
 
     setProfile(profileData as ProfileRecord);
     setWorkspaceRecords(hydratedWorkspaces);
@@ -454,6 +628,7 @@ export function useCloudWorkspace(user: User | null, language: Language) {
           width: number | null;
           height: number | null;
           size_bytes: number | null;
+          exif_overrides: StoredExifData;
         }> = [];
 
         const removedPhotos = (activeWorkspaceRecord?.photos ?? []).filter((photo) => !currentItemIds.has(photo.id));
@@ -468,11 +643,12 @@ export function useCloudWorkspace(user: User | null, language: Language) {
               file_name: item.image.name,
               original_url: item.image.storageOriginalPath!,
               preview_url: item.image.storagePreviewPath!,
-              mime_type: item.image.mimeType ?? null,
-              width: item.image.width ?? null,
-              height: item.image.height ?? null,
-              size_bytes: item.image.sizeBytes ?? null,
-            });
+                mime_type: item.image.mimeType ?? null,
+                width: item.image.width ?? null,
+                height: item.image.height ?? null,
+                size_bytes: item.image.sizeBytes ?? null,
+                exif_overrides: serializeExifOverrides(item.exifData),
+              });
             continue;
           }
 
@@ -495,41 +671,31 @@ export function useCloudWorkspace(user: User | null, language: Language) {
           ?? null;
 
         if (uploadedPhotos.length) {
-          const { data: insertedPhotos, error: photosError } = await supabase
-            .from('photos')
-            .insert(
-              uploadedPhotos.map(({ item, uploaded }) => ({
-                workspace_id: workspaceId,
-                file_name: item.image.name,
-                original_url: uploaded.original.path,
-                preview_url: uploaded.preview.path,
-                mime_type: item.image.mimeType ?? null,
-                width: item.image.width ?? null,
-                height: item.image.height ?? null,
-                size_bytes: item.image.sizeBytes ?? null,
-              })),
-            )
-            .select('id, original_url, preview_url');
+          const { data: insertedPhotos, error: photosError } = await insertPhotoRows(
+            workspaceId,
+            uploadedPhotos.map(({ item, uploaded }) => ({
+              file_name: item.image.name,
+              original_url: uploaded.original.path,
+              preview_url: uploaded.preview.path,
+              mime_type: item.image.mimeType ?? null,
+              width: item.image.width ?? null,
+              height: item.image.height ?? null,
+              size_bytes: item.image.sizeBytes ?? null,
+              exif_overrides: serializeExifOverrides(item.exifData),
+            })),
+          );
 
           if (photosError) {
             throw photosError;
           }
 
-          for (const photo of (insertedPhotos ?? []) as InsertedPhotoRecord[]) {
+          for (const photo of insertedPhotos) {
             insertedPhotoIds.push(photo.id);
           }
         }
 
         for (const row of updateRows) {
-          const { error } = await supabase.from('photos').update({
-            file_name: row.file_name,
-            original_url: row.original_url,
-            preview_url: row.preview_url,
-            mime_type: row.mime_type,
-            width: row.width,
-            height: row.height,
-            size_bytes: row.size_bytes,
-          }).eq('id', row.id);
+          const { error } = await updatePhotoRow(row);
 
           if (error) {
             throw error;

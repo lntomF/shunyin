@@ -134,7 +134,7 @@ export default function App() {
                 await cloud.deleteWorkspace(session.cloudWorkspaceId);
 
                 if (state.currentCloudWorkspaceId === session.cloudWorkspaceId) {
-                  actions.setCurrentCloudWorkspace(null);
+                  actions.useDemoImage();
                   actions.setCurrentView('import');
                 }
               }}
