@@ -35,7 +35,7 @@ export function WorkspaceStrip({
           return (
             <div
               key={item.id}
-              className={`group relative min-w-[118px] sm:min-w-[128px] overflow-hidden rounded-xl border text-left transition-all ${
+              className={`group relative w-[92px] shrink-0 overflow-hidden rounded-xl border text-left transition-all sm:w-[104px] md:w-[112px] ${
                 isSelected
                   ? 'border-secondary/50 bg-surface-container-high'
                   : 'border-outline-variant/10 bg-surface-container-lowest hover:border-secondary/30'
@@ -46,7 +46,7 @@ export function WorkspaceStrip({
                 onClick={() => onSelectImage(item.id)}
                 className="block w-full text-left"
               >
-                <div className="aspect-[4/5] overflow-hidden bg-surface-container-low">
+                <div className="aspect-[3/4] overflow-hidden bg-surface-container-low">
                   <img
                     src={item.image.objectUrl ?? item.image.src}
                     alt={item.image.name}
@@ -54,9 +54,9 @@ export function WorkspaceStrip({
                     referrerPolicy="no-referrer"
                   />
                 </div>
-                <div className="space-y-1 px-2.5 py-2.5">
-                  <div className="truncate font-headline text-xs font-bold text-primary">{item.image.name}</div>
-                  <div className="truncate text-[9px] uppercase tracking-[0.16em] text-on-surface-variant">{item.exifData.resolution}</div>
+                <div className="space-y-1 px-2 py-2">
+                  <div className="truncate font-headline text-[11px] font-bold text-primary">{item.image.name}</div>
+                  <div className="truncate text-[8px] uppercase tracking-[0.14em] text-on-surface-variant">{item.exifData.resolution}</div>
                 </div>
               </button>
               {onDeleteItem && items.length > 1 && (
@@ -64,10 +64,10 @@ export function WorkspaceStrip({
                   type="button"
                   onClick={() => onDeleteItem(item.id)}
                   disabled={deletingImageId === item.id}
-                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-black/45 text-primary backdrop-blur-sm transition-colors hover:bg-black/65 disabled:cursor-wait disabled:opacity-60"
+                  className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-black/45 text-primary backdrop-blur-sm transition-colors hover:bg-black/65 disabled:cursor-wait disabled:opacity-60"
                   aria-label={deleteLabel}
                 >
-                  <Trash2 size={12} />
+                  <Trash2 size={11} />
                 </button>
               )}
             </div>
