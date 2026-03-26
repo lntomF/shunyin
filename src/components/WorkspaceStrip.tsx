@@ -21,7 +21,7 @@ export function WorkspaceStrip({
   deleteLabel = 'Delete photo',
 }: WorkspaceStripProps) {
   return (
-    <section className="space-y-4 rounded-2xl bg-surface-container-low p-5 ghost-border">
+    <section className="space-y-3 rounded-2xl bg-surface-container-low p-4 ghost-border">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h3 className="font-headline text-sm font-bold uppercase tracking-[0.22em] text-on-surface-variant">{title}</h3>
@@ -29,13 +29,13 @@ export function WorkspaceStrip({
         </div>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-1">
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {items.map((item) => {
           const isSelected = item.id === selectedImageId;
           return (
             <div
               key={item.id}
-              className={`group relative min-w-[156px] overflow-hidden rounded-2xl border text-left transition-all ${
+              className={`group relative min-w-[118px] sm:min-w-[128px] overflow-hidden rounded-xl border text-left transition-all ${
                 isSelected
                   ? 'border-secondary/50 bg-surface-container-high'
                   : 'border-outline-variant/10 bg-surface-container-lowest hover:border-secondary/30'
@@ -54,9 +54,9 @@ export function WorkspaceStrip({
                     referrerPolicy="no-referrer"
                   />
                 </div>
-                <div className="space-y-1 px-3 py-3">
-                  <div className="truncate font-headline text-sm font-bold text-primary">{item.image.name}</div>
-                  <div className="truncate text-[10px] uppercase tracking-[0.18em] text-on-surface-variant">{item.exifData.resolution}</div>
+                <div className="space-y-1 px-2.5 py-2.5">
+                  <div className="truncate font-headline text-xs font-bold text-primary">{item.image.name}</div>
+                  <div className="truncate text-[9px] uppercase tracking-[0.16em] text-on-surface-variant">{item.exifData.resolution}</div>
                 </div>
               </button>
               {onDeleteItem && items.length > 1 && (
@@ -64,10 +64,10 @@ export function WorkspaceStrip({
                   type="button"
                   onClick={() => onDeleteItem(item.id)}
                   disabled={deletingImageId === item.id}
-                  className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/45 text-primary backdrop-blur-sm transition-colors hover:bg-black/65 disabled:cursor-wait disabled:opacity-60"
+                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-black/45 text-primary backdrop-blur-sm transition-colors hover:bg-black/65 disabled:cursor-wait disabled:opacity-60"
                   aria-label={deleteLabel}
                 >
-                  <Trash2 size={13} />
+                  <Trash2 size={12} />
                 </button>
               )}
             </div>
