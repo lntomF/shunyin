@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AuthError, Session, User } from '@supabase/supabase-js';
 import type { AuthStatus } from '../types/app';
-import { supabase } from '../lib/supabase';
+import { cloudUnavailableErrorMessage, supabase } from '../lib/supabase';
 
 interface AuthCredentials {
   email: string;
@@ -21,14 +21,30 @@ interface UpdatePasswordPayload {
   password: string;
 }
 
+function requireAuthClient() {
+  if (!supabase) {
+    throw new Error(cloudUnavailableErrorMessage);
+  }
+
+  return supabase;
+}
+
 export function useAuth() {
-  const [status, setStatus] = useState<AuthStatus>('loading');
+  const [status, setStatus] = useState<AuthStatus>(supabase ? 'loading' : 'anonymous');
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
+
+    if (!supabase) {
+      setSession(null);
+      setUser(null);
+      setStatus('anonymous');
+      setIsRecoveryMode(false);
+      return;
+    }
 
     if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
       setIsRecoveryMode(true);
@@ -74,7 +90,8 @@ export function useAuth() {
   }, []);
 
   const signIn = useCallback(async ({ email, password }: AuthCredentials) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const client = requireAuthClient();
+    const { error } = await client.auth.signInWithPassword({
       email,
       password,
     });
@@ -85,7 +102,8 @@ export function useAuth() {
   }, []);
 
   const signUp = useCallback(async ({ email, password }: AuthCredentials) => {
-    const { error } = await supabase.auth.signUp({
+    const client = requireAuthClient();
+    const { error } = await client.auth.signUp({
       email,
       password,
     });
@@ -96,7 +114,8 @@ export function useAuth() {
   }, []);
 
   const verifySignupOtp = useCallback(async ({ email, token }: VerifySignupOtpPayload) => {
-    const { error } = await supabase.auth.verifyOtp({
+    const client = requireAuthClient();
+    const { error } = await client.auth.verifyOtp({
       email,
       token,
       type: 'email',
@@ -108,7 +127,8 @@ export function useAuth() {
   }, []);
 
   const resendSignupOtp = useCallback(async ({ email }: ResendSignupOtpPayload) => {
-    const { error } = await supabase.auth.resend({
+    const client = requireAuthClient();
+    const { error } = await client.auth.resend({
       type: 'signup',
       email,
     });
@@ -119,11 +139,12 @@ export function useAuth() {
   }, []);
 
   const sendPasswordReset = useCallback(async ({ email }: { email: string }) => {
+    const client = requireAuthClient();
     const redirectTo = typeof window === 'undefined'
       ? undefined
       : `${window.location.origin}${window.location.pathname}${window.location.search}`;
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await client.auth.resetPasswordForEmail(email, {
       redirectTo,
     });
 
@@ -133,7 +154,8 @@ export function useAuth() {
   }, []);
 
   const updatePassword = useCallback(async ({ password }: UpdatePasswordPayload) => {
-    const { error } = await supabase.auth.updateUser({
+    const client = requireAuthClient();
+    const { error } = await client.auth.updateUser({
       password,
     });
 
@@ -159,7 +181,8 @@ export function useAuth() {
   }, []);
 
   const signOut = useCallback(async () => {
-    const { error } = await supabase.auth.signOut();
+    const client = requireAuthClient();
+    const { error } = await client.auth.signOut();
     if (error) {
       throw error;
     }
@@ -169,6 +192,7 @@ export function useAuth() {
     status,
     session,
     user,
+    isAvailable: Boolean(supabase),
     signIn,
     signUp,
     verifySignupOtp,

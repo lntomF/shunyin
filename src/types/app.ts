@@ -11,7 +11,7 @@ export type UploadStatus = 'idle' | 'dragging' | 'loading' | 'ready' | 'error';
 export type ExportStatus = 'idle' | 'rendering' | 'done' | 'error';
 
 export type AuthStatus = 'loading' | 'authenticated' | 'anonymous';
-export type CloudSyncStatus = 'idle' | 'loading' | 'saving' | 'saved' | 'error';
+export type CloudSyncStatus = 'idle' | 'loading' | 'saving' | 'saved' | 'error' | 'disabled';
 
 export type UploadError = 'invalid_type' | 'file_too_large' | 'import_failed' | null;
 

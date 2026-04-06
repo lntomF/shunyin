@@ -1,27 +1,27 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;700;800&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-surface-bright: #2b2c2c;
-  --color-surface-container-high: #1f2020;
-  --color-on-surface: #e7e5e5;
-  --color-on-surface-variant: #acabaa;
-  --color-surface-container-low: #131313;
-  --color-surface: #0e0e0e;
-  --color-secondary: #51a4e4;
-  --color-primary: #c6c6c6;
-  --color-tertiary: #ffc87f;
-  --color-surface-variant: #252626;
-  --color-outline-variant: #484848;
-  --color-outline: #767575;
-  --color-surface-container: #191a1a;
-  --color-surface-container-highest: #252626;
-  --color-surface-container-lowest: #000000;
-  --color-background: #0e0e0e;
+  --color-surface-bright: #1e2a45;
+  --color-surface-container-high: #131b2f;
+  --color-on-surface: #edf3ff;
+  --color-on-surface-variant: #9babcb;
+  --color-surface-container-low: #0d1424;
+  --color-surface: #09111f;
+  --color-secondary: #79d8ff;
+  --color-primary: #f3f6ff;
+  --color-tertiary: #6ee7c8;
+  --color-surface-variant: #18233b;
+  --color-outline-variant: #2f3c5e;
+  --color-outline: #7281a5;
+  --color-surface-container: #101a2d;
+  --color-surface-container-highest: #1a2742;
+  --color-surface-container-lowest: #050b16;
+  --color-background: #07101d;
 
-  --font-headline: 'Manrope', sans-serif;
-  --font-sans: 'Inter', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-headline: 'Space Grotesk', sans-serif;
+  --font-sans: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
 }
 
 @layer utilities {
@@ -33,6 +33,32 @@
   }
   .ghost-border {
     @apply border border-outline-variant/15;
+  }
+  .console-panel {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+      rgba(12, 18, 33, 0.88);
+    border: 1px solid rgba(121, 216, 255, 0.12);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 18px 40px rgba(3, 8, 20, 0.4);
+    backdrop-filter: blur(14px);
+  }
+  .console-grid {
+    background-image:
+      linear-gradient(rgba(121, 216, 255, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(121, 216, 255, 0.08) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .accent-line {
+    position: relative;
+  }
+  .accent-line::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 1px;
+    background: linear-gradient(180deg, rgba(121, 216, 255, 0.9), rgba(121, 216, 255, 0));
   }
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
@@ -46,4 +72,22 @@
 body {
   @apply bg-background text-on-surface font-sans antialiased selection:bg-secondary/30 selection:text-secondary;
   min-height: max(884px, 100dvh);
+  background-image:
+    radial-gradient(circle at top, rgba(121, 216, 255, 0.12), transparent 32%),
+    radial-gradient(circle at 80% 20%, rgba(110, 231, 200, 0.08), transparent 22%),
+    linear-gradient(180deg, #09111f 0%, #07101d 45%, #060d18 100%);
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(121, 216, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(121, 216, 255, 0.06) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(circle at top, black 12%, transparent 72%);
+  opacity: 0.38;
 }

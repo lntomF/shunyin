@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Eye, EyeOff, Palette, Pen, Sparkles } from 'lucide-react';
+import { CheckCircle2, Circle, Palette, Pen, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { WorkspaceStrip } from '../WorkspaceStrip';
 import { PreviewStage } from '../preview/PreviewStage';
@@ -42,178 +42,154 @@ export function EditorView({
   onSelectStyle,
   onApply,
 }: EditorViewProps) {
+  const metadataCards = [
+    { label: dict.colorSpace, value: exifData.colorSpace },
+    { label: dict.bitDepth, value: exifData.bitDepth },
+    { label: dict.metering, value: exifData.metering },
+    { label: dict.fileSize, value: exifData.fileSize },
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-      className="mx-auto max-w-7xl px-4 pb-32 pt-24 md:px-12 lg:px-24"
+      className="mx-auto max-w-[1600px] px-4 pb-32 pt-24 md:px-8 xl:px-12"
     >
-      <section className="mb-6">
-        <WorkspaceStrip
-          title={dict.imageQueueTitle}
-          items={workspaceItems}
-          selectedImageId={selectedImageId}
-          onSelectImage={onSelectImage}
-          onDeleteItem={onDeleteImage}
-          deletingImageId={deletingImageId}
-          deleteLabel={dict.deleteCloudPhoto}
-        />
-      </section>
+      {/* 三列：图片队列 + EXIF | 预览 | 样式选择 */}
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[220px_minmax(0,1fr)_300px]">
 
-      <section className="mb-12">
-        <div className="relative overflow-hidden rounded-2xl bg-surface-container-lowest shadow-2xl">
-          <PreviewStage
-            image={sourceImage}
-            exifData={exifData}
-            styleTemplate={selectedStyle}
-            styleTitle={selectedStyleTitle}
-            brandName={dict.brandName}
-            previewMode={previewMode}
-            alt={sourceImage.name}
+        {/* 左栏：图片队列 + EXIF */}
+        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+          <WorkspaceStrip
+            title={dict.imageQueueTitle}
+            items={workspaceItems}
+            selectedImageId={selectedImageId}
+            onSelectImage={onSelectImage}
+            onDeleteItem={onDeleteImage}
+            deletingImageId={deletingImageId}
+            deleteLabel={dict.deleteCloudPhoto}
+            orientation="vertical"
           />
 
-          <div className="pointer-events-none absolute bottom-8 right-8 flex items-end gap-3">
-            <div className="h-10 w-px bg-primary/20" />
-            <div className="flex flex-col">
-              <span className="font-headline text-[10px] uppercase tracking-[0.3em] text-primary/60">{dict.activeStyle}</span>
-              <span className="font-headline text-sm font-bold tracking-widest text-primary">{selectedStyleTitle}</span>
+          {/* EXIF 紧凑面板 */}
+          <div className="console-panel relative overflow-hidden rounded-[1.6rem] p-4">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/60 to-transparent" />
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-secondary">{dict.exifTitle}</div>
+              <Sparkles className="text-secondary/40" size={14} strokeWidth={1} />
+            </div>
+
+            <div className="space-y-2.5">
+              <div className="space-y-1">
+                <label className="block text-[9px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{dict.cameraBody}</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={exifData.cameraBody}
+                    onChange={(event) => onExifChange('cameraBody', event.target.value)}
+                    className="w-full rounded-[0.75rem] border border-secondary/10 bg-surface/70 px-3 py-2 text-xs font-headline tracking-[0.04em] text-primary outline-none shutter-transition focus:border-secondary/30"
+                  />
+                  <Pen size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline" />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[9px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{dict.lens}</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={exifData.lens}
+                    onChange={(event) => onExifChange('lens', event.target.value)}
+                    className="w-full rounded-[0.75rem] border border-secondary/10 bg-surface/70 px-3 py-2 text-xs font-headline tracking-[0.04em] text-primary outline-none shutter-transition focus:border-secondary/30"
+                  />
+                  <Pen size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { key: 'aperture' as const, label: dict.aperture },
+                  { key: 'shutter' as const, label: dict.shutter },
+                  { key: 'iso' as const, label: dict.iso },
+                ].map(({ key, label }) => (
+                  <div key={key} className="space-y-1">
+                    <label className="block text-[9px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{label}</label>
+                    <input
+                      type="text"
+                      value={exifData[key]}
+                      onChange={(event) => onExifChange(key, event.target.value)}
+                      className="w-full rounded-[0.75rem] border border-secondary/10 bg-surface/70 px-2 py-2 text-center text-xs font-mono tracking-[0.04em] text-primary outline-none shutter-transition focus:border-secondary/30"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t border-outline-variant/10 pt-2.5 space-y-1.5">
+                {metadataCards.map((item) => (
+                  <div key={item.label} className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-on-surface-variant">{item.label}</span>
+                    <span className="font-mono text-[10px] text-secondary">{item.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+        </aside>
 
-          <div className="absolute left-6 top-6 flex items-center gap-2 rounded-full bg-surface/50 px-3 py-1.5 opacity-80 backdrop-blur-md">
-            <div className="h-2 w-2 rounded-full bg-secondary" />
-            <span className="font-sans text-[10px] font-medium uppercase tracking-[0.2em] text-primary">{exifData.focusMode}</span>
-          </div>
-
-          <div className="absolute right-6 top-6 rounded-full bg-surface/50 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-primary/80 backdrop-blur-md">
-            {previewMode === 'processed' ? dict.processed : dict.original}
+        {/* 中栏：预览 */}
+        <div>
+          <div className="flex items-center justify-center overflow-hidden rounded-[2rem] border border-secondary/12 bg-surface-container-lowest" style={{ height: '520px' }}>
+            <PreviewStage
+              image={sourceImage}
+              exifData={exifData}
+              styleTemplate={selectedStyle}
+              styleTitle={selectedStyleTitle}
+              brandName={dict.brandName}
+              previewMode={previewMode}
+              alt={sourceImage.name}
+              className="h-full w-auto"
+            />
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-4 px-2">
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => onPreviewModeChange('original')}
-              className={`inline-flex items-center gap-2 text-xs font-headline uppercase tracking-widest transition-colors ${
-                previewMode === 'original' ? 'font-bold text-secondary' : 'text-on-surface-variant hover:text-primary'
-              }`}
-            >
-              <EyeOff size={14} />
-              {dict.original}
-            </button>
-            <button
-              onClick={() => onPreviewModeChange('processed')}
-              className={`inline-flex items-center gap-2 text-xs font-headline uppercase tracking-widest transition-colors ${
-                previewMode === 'processed' ? 'font-bold text-secondary' : 'text-on-surface-variant hover:text-primary'
-              }`}
-            >
-              <Eye size={14} />
-              {dict.processed}
-            </button>
-          </div>
-          <span className="text-[10px] uppercase tracking-widest text-outline">{exifData.resolution}</span>
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <div className="relative overflow-hidden rounded-2xl bg-surface-container-low p-8 ghost-border md:col-span-2">
-          <div className="mb-8 flex items-start justify-between gap-4">
-            <div>
-              <h2 className="mb-1 font-headline text-lg font-extrabold tracking-tight">{dict.exifTitle}</h2>
-              <p className="font-sans text-xs text-on-surface-variant">{dict.exifDesc}</p>
+        {/* 右栏：样式选择 + 导出按钮 */}
+        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+          <div className="console-panel relative overflow-hidden rounded-[1.9rem] p-5">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/60 to-transparent" />
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-secondary">{dict.watermarkStyle}</div>
+                <h3 className="mt-1.5 font-headline text-base font-bold tracking-[-0.03em] text-primary">{selectedStyleTitle}</h3>
+              </div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-[0.85rem] border border-secondary/15 bg-surface/70 text-secondary">
+                <Palette size={15} />
+              </div>
             </div>
-            <Sparkles className="text-secondary/40" size={32} strokeWidth={1} />
-          </div>
 
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className="block text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{dict.cameraBody}</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={exifData.cameraBody}
-                  onChange={(event) => onExifChange('cameraBody', event.target.value)}
-                  className="w-full rounded-md border-none bg-surface-container-high px-4 py-3 text-sm font-headline tracking-wide text-primary outline-none focus:ring-1 focus:ring-secondary"
-                />
-                <Pen size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-outline" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{dict.lens}</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={exifData.lens}
-                  onChange={(event) => onExifChange('lens', event.target.value)}
-                  className="w-full rounded-md border-none bg-surface-container-high px-4 py-3 text-sm font-headline tracking-wide text-primary outline-none focus:ring-1 focus:ring-secondary"
-                />
-                <Pen size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-outline" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4 sm:col-span-2">
-              <div className="space-y-2">
-                <label className="block text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{dict.aperture}</label>
-                <input
-                  type="text"
-                  value={exifData.aperture}
-                  onChange={(event) => onExifChange('aperture', event.target.value)}
-                  className="w-full rounded-md border-none bg-surface-container-high px-4 py-3 text-center text-sm font-headline tracking-wide text-primary outline-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{dict.shutter}</label>
-                <input
-                  type="text"
-                  value={exifData.shutter}
-                  onChange={(event) => onExifChange('shutter', event.target.value)}
-                  className="w-full rounded-md border-none bg-surface-container-high px-4 py-3 text-center text-sm font-headline tracking-wide text-primary outline-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{dict.iso}</label>
-                <input
-                  type="text"
-                  value={exifData.iso}
-                  onChange={(event) => onExifChange('iso', event.target.value)}
-                  className="w-full rounded-md border-none bg-surface-container-high px-4 py-3 text-center text-sm font-headline tracking-wide text-primary outline-none"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-6">
-          <div className="flex-1 rounded-2xl bg-surface-container-high p-6 ghost-border">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">{dict.watermarkStyle}</h3>
-              <Palette size={16} className="text-secondary/60" />
-            </div>
-            <div className="space-y-3">
               {styleTemplates.map((template) => {
                 const isSelected = template.id === selectedStyle.id;
                 return (
                   <button
                     key={template.id}
+                    type="button"
                     onClick={() => onSelectStyle(template.id)}
-                    className={`w-full cursor-pointer rounded border p-3 text-left transition-all ${
+                    className={`w-full rounded-[1rem] border p-3 text-left shutter-transition ${
                       isSelected
-                        ? 'border-outline-variant/30 bg-surface-bright'
-                        : 'border-transparent bg-surface-container-low hover:border-outline-variant/30'
+                        ? 'border-secondary/25 bg-secondary/10 shadow-[0_8px_20px_rgba(121,216,255,0.08)]'
+                        : 'border-outline-variant/15 bg-surface/62 hover:border-secondary/20 hover:bg-surface/72'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <div className={`text-xs font-medium ${isSelected ? 'text-primary' : 'text-outline'}`}>{dict[template.titleKey]}</div>
-                        <div className="mt-1 text-[10px] uppercase tracking-[0.15em] text-on-surface-variant">{dict[template.descriptionKey]}</div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className={`font-headline text-xs font-bold tracking-[0.03em] ${isSelected ? 'text-primary' : 'text-on-surface'}`}>
+                        {dict[template.titleKey]}
                       </div>
                       {isSelected ? (
-                        <CheckCircle2 size={18} className="fill-secondary/20 text-secondary" />
+                        <CheckCircle2 size={15} className="shrink-0 fill-secondary/18 text-secondary" />
                       ) : (
-                        <Circle size={18} className="text-outline" />
+                        <Circle size={15} className="shrink-0 text-outline" />
                       )}
                     </div>
                   </button>
@@ -222,24 +198,14 @@ export function EditorView({
             </div>
           </div>
 
-          <button onClick={onApply} className="w-full rounded-md bg-primary py-4 text-sm font-headline font-black uppercase tracking-[0.2em] text-surface shadow-lg transition-transform hover:bg-white active:scale-95">
+          <button
+            type="button"
+            onClick={onApply}
+            className="w-full rounded-[1.2rem] border border-secondary/20 bg-primary py-3.5 text-sm font-headline font-bold uppercase tracking-[0.2em] text-surface shadow-[0_14px_32px_rgba(121,216,255,0.18)] shutter-transition hover:bg-white active:scale-[0.99]"
+          >
             {dict.applyBtn}
           </button>
-        </div>
-      </section>
-
-      <section className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-4">
-        {[
-          { label: dict.colorSpace, value: exifData.colorSpace },
-          { label: dict.bitDepth, value: exifData.bitDepth },
-          { label: dict.metering, value: exifData.metering },
-          { label: dict.fileSize, value: exifData.fileSize },
-        ].map((item) => (
-          <div key={item.label} className="rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-4">
-            <span className="mb-1 block text-[9px] uppercase tracking-[0.2em] text-outline">{item.label}</span>
-            <span className="text-xs font-mono text-secondary">{item.value}</span>
-          </div>
-        ))}
+        </aside>
       </section>
     </motion.div>
   );

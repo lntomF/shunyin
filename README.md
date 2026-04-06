@@ -89,13 +89,21 @@ npm run clean      # 删除 dist 目录
 
 ### 必跑 migration
 
-如果你希望云端工作区正确保留手动编辑过的 EXIF 覆盖值，请先执行：
+如果你是第一次给 SHUNYIN 配 Supabase，建议在 SQL Editor 里按下面顺序执行：
 
 ```sql
+docs/supabase/create-shunyin-core-schema.sql
 docs/supabase/add-photo-exif-overrides.sql
+docs/supabase/add-shunyin-workspace-rpcs.sql
 ```
 
-这会给 `public.photos` 增加 `exif_overrides jsonb` 字段。
+其中：
+
+- `create-shunyin-core-schema.sql` 会创建 `profiles`、`workspaces`、`photos` 表、触发器、RLS、`workspace-images` bucket 和对应 Storage policy
+- `add-photo-exif-overrides.sql` 会给 `public.photos` 增加 `exif_overrides jsonb` 字段
+- `add-shunyin-workspace-rpcs.sql` 会创建 SHUNYIN 使用的工作区保存 / 删除 RPC，前端会优先调用它们；如果你还没执行这份 SQL，前端会自动回退到当前直连实现
+
+这三份 SQL 都可以在 Supabase 免费版使用，不依赖 Edge Functions。
 
 ### 邮件模板
 
