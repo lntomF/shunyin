@@ -35,6 +35,16 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+const WATERMARK_LAYOUT_BASELINE = 1600;
+
+export function getWatermarkLayoutScale(sourceWidth: number, sourceHeight: number) {
+  return Math.max(Math.max(sourceWidth, sourceHeight) / WATERMARK_LAYOUT_BASELINE, 1);
+}
+
+function getScaledMax(maxValue: number, scale: number) {
+  return Math.round(maxValue * scale);
+}
+
 function buildCameraTitle(exifData: ExifData) {
   return compactValue(exifData.cameraBody) ?? 'Camera';
 }
@@ -95,12 +105,14 @@ function formatCaptureTime(isoDate: string) {
 }
 
 export function getRenderedOverlaySize(styleTemplate: StyleTemplate, sourceWidth: number, sourceHeight: number): RenderedSize {
+  const layoutScale = getWatermarkLayoutScale(sourceWidth, sourceHeight);
+
   switch (styleTemplate.styleType) {
     case 'portrait-gallery-card': {
       const minEdge = Math.min(sourceWidth, sourceHeight);
-      const sidePadding = clamp(Math.round(minEdge * 0.12), 44, 140);
-      const topPadding = clamp(Math.round(minEdge * 0.08), 28, 96);
-      const footerHeight = clamp(Math.round(minEdge * 0.2), 110, 220);
+      const sidePadding = clamp(Math.round(minEdge * 0.12), 44, getScaledMax(140, layoutScale));
+      const topPadding = clamp(Math.round(minEdge * 0.08), 28, getScaledMax(96, layoutScale));
+      const footerHeight = clamp(Math.round(minEdge * 0.2), 110, getScaledMax(220, layoutScale));
 
       return {
         width: sourceWidth + sidePadding * 2,
@@ -108,7 +120,7 @@ export function getRenderedOverlaySize(styleTemplate: StyleTemplate, sourceWidth
       };
     }
     case 'white-footer-brand': {
-      const footerHeight = clamp(Math.round(sourceHeight * 0.17), 108, 176);
+      const footerHeight = clamp(Math.round(sourceHeight * 0.17), 108, getScaledMax(176, layoutScale));
       return {
         width: sourceWidth,
         height: sourceHeight + footerHeight,

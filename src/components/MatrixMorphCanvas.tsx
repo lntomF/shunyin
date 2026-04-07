@@ -197,24 +197,6 @@ export function MatrixMorphCanvas({ imageSrc }: MatrixMorphCanvasProps) {
       context.restore();
     };
 
-    const drawBoundary = (time: number) => {
-      const pulse = 0.72 + ((Math.sin(time * 0.004) + 1) / 2) * 0.28;
-
-      context.save();
-      const glow = context.createRadialGradient(boundaryX, height / 2, 0, boundaryX, height / 2, 72);
-      glow.addColorStop(0, `rgba(165, 125, 255, ${0.34 * pulse})`);
-      glow.addColorStop(0.45, `rgba(145, 91, 255, ${0.16 * pulse})`);
-      glow.addColorStop(1, 'rgba(145, 91, 255, 0)');
-      context.fillStyle = glow;
-      context.fillRect(boundaryX - 80, height * 0.08, 160, height * 0.84);
-
-      context.fillStyle = `rgba(255,255,255,${0.74 * pulse})`;
-      context.shadowBlur = 26;
-      context.shadowColor = 'rgba(173,129,255,0.95)';
-      context.fillRect(boundaryX - 2.5, height * 0.12, 5, height * 0.76);
-      context.restore();
-    };
-
     const drawParticles = (progress: number) => {
       context.save();
       particles.forEach((particle, index) => {
@@ -338,7 +320,6 @@ export function MatrixMorphCanvas({ imageSrc }: MatrixMorphCanvasProps) {
 
       drawMatrixWall(time);
       drawParticles(progress);
-      drawBoundary(time);
       drawImageFrame(progress);
 
       animationFrame = window.requestAnimationFrame(render);

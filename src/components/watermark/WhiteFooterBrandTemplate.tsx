@@ -1,4 +1,5 @@
 import type { WatermarkSvgProps } from './types';
+import { getWatermarkLayoutScale } from '../../utils/overlay';
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -17,19 +18,21 @@ export function WhiteFooterBrandTemplate({
 }: WatermarkSvgProps) {
   const sourceWidth = Math.max(image.width ?? width, 1);
   const sourceHeight = Math.max(image.height ?? height, 1);
-  const footerHeight = Math.max(height - sourceHeight, clamp(Math.round(sourceHeight * 0.17), 108, 176));
+  const layoutScale = getWatermarkLayoutScale(sourceWidth, sourceHeight);
+  const scaledMax = (value: number) => Math.round(value * layoutScale);
+  const footerHeight = Math.max(height - sourceHeight, clamp(Math.round(sourceHeight * 0.17), 108, scaledMax(176)));
   const photoHeight = height - footerHeight;
-  const paddingX = clamp(Math.round(width * 0.045), 28, 64);
+  const paddingX = clamp(Math.round(width * 0.045), 28, scaledMax(64));
   const topLineY = photoHeight - 1.5;
   const dividerOneX = width * 0.315;
   const dividerTwoX = width * 0.735;
   const dividerTop = photoHeight + footerHeight * 0.2;
   const dividerHeight = footerHeight * 0.58;
-  const brandFontSize = clamp(Math.round(width * 0.072), 54, 108);
-  const leftTitleSize = clamp(Math.round(width * 0.0185), 18, 30);
-  const leftMetaSize = clamp(Math.round(width * 0.0108), 11, 16);
-  const rightMainSize = clamp(Math.round(width * 0.015), 16, 24);
-  const rightSubSize = clamp(Math.round(width * 0.0102), 10, 15);
+  const brandFontSize = clamp(Math.round(width * 0.072), 54, scaledMax(108));
+  const leftTitleSize = clamp(Math.round(width * 0.0185), 18, scaledMax(30));
+  const leftMetaSize = clamp(Math.round(width * 0.0108), 11, scaledMax(16));
+  const rightMainSize = clamp(Math.round(width * 0.015), 16, scaledMax(24));
+  const rightSubSize = clamp(Math.round(width * 0.0102), 10, scaledMax(15));
   const leftBlockY = photoHeight + footerHeight * 0.42;
   const brandY = photoHeight + footerHeight * 0.6;
   const rightBlockY = photoHeight + footerHeight * 0.41;

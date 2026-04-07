@@ -1,4 +1,5 @@
 import type { WatermarkSvgProps } from './types';
+import { getWatermarkLayoutScale } from '../../utils/overlay';
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -15,17 +16,19 @@ export function PortraitGalleryCardTemplate({
   const sourceWidth = Math.max(image.width ?? width, 1);
   const sourceHeight = Math.max(image.height ?? height, 1);
   const minEdge = Math.min(sourceWidth, sourceHeight);
-  const sidePadding = clamp(Math.round(minEdge * 0.12), 44, 140);
-  const topPadding = clamp(Math.round(minEdge * 0.08), 28, 96);
-  const footerHeight = Math.max(height - sourceHeight - topPadding, clamp(Math.round(minEdge * 0.2), 110, 220));
+  const layoutScale = getWatermarkLayoutScale(sourceWidth, sourceHeight);
+  const scaledMax = (value: number) => Math.round(value * layoutScale);
+  const sidePadding = clamp(Math.round(minEdge * 0.12), 44, scaledMax(140));
+  const topPadding = clamp(Math.round(minEdge * 0.08), 28, scaledMax(96));
+  const footerHeight = Math.max(height - sourceHeight - topPadding, clamp(Math.round(minEdge * 0.2), 110, scaledMax(220)));
   const imageX = (width - sourceWidth) / 2;
   const imageY = topPadding;
   const imageBottom = imageY + sourceHeight;
-  const imageRadius = clamp(Math.round(minEdge * 0.055), 24, 40);
-  const titleFontSize = clamp(Math.round(sourceWidth * 0.064), 34, 54);
-  const parameterFontSize = clamp(Math.round(sourceWidth * 0.031), 18, 28);
-  const titleGap = clamp(Math.round(footerHeight * 0.2), 18, 36);
-  const parameterGap = clamp(Math.round(footerHeight * 0.08), 6, 14);
+  const imageRadius = clamp(Math.round(minEdge * 0.055), 24, scaledMax(40));
+  const titleFontSize = clamp(Math.round(sourceWidth * 0.064), 34, scaledMax(54));
+  const parameterFontSize = clamp(Math.round(sourceWidth * 0.031), 18, scaledMax(28));
+  const titleGap = clamp(Math.round(footerHeight * 0.2), 18, scaledMax(36));
+  const parameterGap = clamp(Math.round(footerHeight * 0.08), 6, scaledMax(14));
   const titleY = imageBottom + titleGap + titleFontSize * 0.72;
   const parameterY = titleY + parameterGap + parameterFontSize;
   const backgroundBlurStd = Math.max(width, height) * 0.036;
