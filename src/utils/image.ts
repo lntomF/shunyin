@@ -264,7 +264,7 @@ async function readExifOverrides(file: File): Promise<Partial<ExifData>> {
 const dataUrlCache = new Map<string, Promise<string>>();
 
 export function resolveImageDataUrl(src: string) {
-  if (!/^https?:\/\//i.test(src)) {
+  if (/^data:/i.test(src)) {
     return Promise.resolve(src);
   }
 
