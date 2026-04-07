@@ -67,10 +67,10 @@ function smoothstep(edge0: number, edge1: number, value: number) {
 function createFragments(width: number, height: number, variant: 'strip' | 'hero') {
   const isHero = variant === 'hero';
   const boundaryX = width * (isHero ? 0.48 : 0.52);
-  const imageWidth = Math.min(width * (isHero ? 0.24 : 0.22), isHero ? 320 : 182);
+  const imageWidth = Math.min(width * (isHero ? 0.28 : 0.22), isHero ? 420 : 182);
   const imageHeight = imageWidth * 1.24;
-  const imageX = width - imageWidth - width * (isHero ? 0.1 : 0.06);
-  const imageY = isHero ? height * 0.18 : (height - imageHeight) / 2;
+  const imageX = width - imageWidth - width * (isHero ? 0.08 : 0.06);
+  const imageY = isHero ? Math.max((height - imageHeight) / 2, height * 0.12) : (height - imageHeight) / 2;
   const cols = 5;
   const rows = 6;
   const fragments: Fragment[] = [];
@@ -182,8 +182,8 @@ export function MatrixMorphCanvas({ imageSrc, variant = 'strip' }: MatrixMorphCa
       const startX = width * (isHero ? 0.05 : 0.04);
       const startY = height * (isHero ? 0.14 : 0.16);
       const gradient = context.createLinearGradient(startX, 0, boundaryX, 0);
-      gradient.addColorStop(0, isHero ? 'rgba(144, 140, 171, 0.46)' : 'rgba(144, 140, 171, 0.82)');
-      gradient.addColorStop(0.82, isHero ? 'rgba(144, 140, 171, 0.18)' : 'rgba(144, 140, 171, 0.34)');
+      gradient.addColorStop(0, isHero ? 'rgba(144, 140, 171, 0.56)' : 'rgba(144, 140, 171, 0.82)');
+      gradient.addColorStop(0.82, isHero ? 'rgba(144, 140, 171, 0.24)' : 'rgba(144, 140, 171, 0.34)');
       gradient.addColorStop(1, 'rgba(144, 140, 171, 0)');
 
       context.save();
@@ -194,7 +194,7 @@ export function MatrixMorphCanvas({ imageSrc, variant = 'strip' }: MatrixMorphCa
       MATRIX_LINES.forEach((line, index) => {
         const rowY = startY + index * (isHero ? 20 : 16);
         const drift = Math.sin(time * 0.0012 + index * 0.45) * (isHero ? 14 : 10);
-        context.globalAlpha = (isHero ? 0.18 : 0.36) + ((Math.sin(time * 0.0018 + index * 0.32) + 1) / 2) * (isHero ? 0.18 : 0.36);
+        context.globalAlpha = (isHero ? 0.24 : 0.36) + ((Math.sin(time * 0.0018 + index * 0.32) + 1) / 2) * (isHero ? 0.22 : 0.36);
         context.fillText(line, startX + drift, rowY);
       });
 
@@ -231,10 +231,10 @@ export function MatrixMorphCanvas({ imageSrc, variant = 'strip' }: MatrixMorphCa
       const isHero = variant === 'hero';
       context.save();
 
-      context.fillStyle = isHero ? 'rgba(5, 9, 19, 0.5)' : 'rgba(5, 9, 19, 0.92)';
+      context.fillStyle = isHero ? 'rgba(5, 9, 19, 0.28)' : 'rgba(5, 9, 19, 0.92)';
       context.fillRect(imageRect.x, imageRect.y, imageRect.width, imageRect.height);
 
-      const silhouetteAlpha = (isHero ? 0.05 : 0.08) + smoothstep(0.2, 0.84, progress) * (isHero ? 0.05 : 0.08);
+      const silhouetteAlpha = (isHero ? 0.12 : 0.08) + smoothstep(0.2, 0.84, progress) * (isHero ? 0.12 : 0.08);
       context.globalAlpha = silhouetteAlpha;
       context.drawImage(image, imageRect.x, imageRect.y, imageRect.width, imageRect.height);
       context.globalAlpha = 1;
@@ -252,15 +252,15 @@ export function MatrixMorphCanvas({ imageSrc, variant = 'strip' }: MatrixMorphCa
         const imageAlpha = smoothstep(0.26, 0.88, local);
 
         context.save();
-        context.strokeStyle = isHero ? 'rgba(121,216,255,0.08)' : 'rgba(121,216,255,0.12)';
+        context.strokeStyle = isHero ? 'rgba(121,216,255,0.14)' : 'rgba(121,216,255,0.12)';
         context.lineWidth = 1;
-        context.fillStyle = isHero ? 'rgba(12,18,33,0.52)' : 'rgba(12,18,33,0.88)';
+        context.fillStyle = isHero ? 'rgba(12,18,33,0.26)' : 'rgba(12,18,33,0.88)';
         context.fillRect(currentX, currentY, fragment.tw, fragment.th);
         context.strokeRect(currentX + 0.5, currentY + 0.5, fragment.tw - 1, fragment.th - 1);
 
         if (charAlpha > 0.02) {
-          context.globalAlpha = charAlpha * (isHero ? 0.55 : 1);
-          context.fillStyle = isHero ? 'rgba(121,216,255,0.58)' : 'rgba(121,216,255,0.82)';
+          context.globalAlpha = charAlpha * (isHero ? 0.46 : 1);
+          context.fillStyle = isHero ? 'rgba(121,216,255,0.48)' : 'rgba(121,216,255,0.82)';
           context.font = `600 ${isHero ? 10 : 9}px "IBM Plex Mono", monospace`;
           context.textAlign = 'center';
           context.textBaseline = 'middle';
@@ -268,7 +268,7 @@ export function MatrixMorphCanvas({ imageSrc, variant = 'strip' }: MatrixMorphCa
         }
 
         if (imageAlpha > 0.02) {
-          context.globalAlpha = imageAlpha * (isHero ? 0.78 : 1);
+          context.globalAlpha = imageAlpha * (isHero ? 0.96 : 1);
           context.drawImage(
             image,
             fragment.sx,
@@ -298,16 +298,16 @@ export function MatrixMorphCanvas({ imageSrc, variant = 'strip' }: MatrixMorphCa
       const sweepX = imageRect.x - 24 + (imageRect.width + 48) * smoothstep(0.24, 0.78, progress);
       const sweepAlpha = smoothstep(0.24, 0.52, progress) * (1 - smoothstep(0.82, 0.96, progress));
       context.save();
-      context.globalAlpha = sweepAlpha * (isHero ? 0.6 : 1);
+      context.globalAlpha = sweepAlpha * (isHero ? 0.78 : 1);
       const sweep = context.createLinearGradient(sweepX - 26, 0, sweepX + 26, 0);
       sweep.addColorStop(0, 'rgba(255,255,255,0)');
-      sweep.addColorStop(0.5, isHero ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.34)');
+      sweep.addColorStop(0.5, isHero ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.34)');
       sweep.addColorStop(1, 'rgba(255,255,255,0)');
       context.fillStyle = sweep;
       context.fillRect(imageRect.x, imageRect.y, imageRect.width, imageRect.height);
       context.restore();
 
-      context.strokeStyle = isHero ? 'rgba(121,216,255,0.1)' : 'rgba(121,216,255,0.16)';
+      context.strokeStyle = isHero ? 'rgba(121,216,255,0.18)' : 'rgba(121,216,255,0.16)';
       context.strokeRect(imageRect.x + 0.5, imageRect.y + 0.5, imageRect.width - 1, imageRect.height - 1);
       context.restore();
     };

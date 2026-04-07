@@ -95,8 +95,8 @@ export function HomeView({
         <div className="pointer-events-none absolute inset-0">
           <MatrixMorphCanvas imageSrc={imageSrc} variant="hero" />
         </div>
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(121,216,255,0.12),transparent_24%),radial-gradient(circle_at_80%_78%,rgba(110,231,200,0.08),transparent_22%)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,16,29,0.34),rgba(7,16,29,0.52)_38%,rgba(7,16,29,0.86))]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(121,216,255,0.12),transparent_24%),radial-gradient(circle_at_80%_62%,rgba(110,231,200,0.08),transparent_22%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,16,29,0.16),rgba(7,16,29,0.28)_34%,rgba(7,16,29,0.72))]" />
 
         <div className="relative px-6 py-16 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
           <span className="mb-8 inline-flex items-center rounded-full border border-secondary/20 bg-secondary/10 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.3em] text-secondary">
