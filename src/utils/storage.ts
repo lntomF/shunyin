@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { WorkspaceItem } from '../types/app';
+import { getLocalImageBlob } from './localImageStore';
 
 interface UploadedAsset {
   path: string;
@@ -71,6 +72,40 @@ async function uploadAsset(
   };
 }
 
+async function uploadAssetFromBlob(
+  client: SupabaseClient,
+  bucketName: string,
+  path: string,
+  blob: Blob,
+  contentType?: string,
+) {
+  const finalContentType = contentType || blob.type || 'image/jpeg';
+  const { error } = await client.storage.from(bucketName).upload(path, blob, {
+    cacheControl: '3600',
+    contentType: finalContentType,
+    upsert: false,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    path,
+  };
+}
+
+async function resolveOriginalUploadBlob(item: WorkspaceItem) {
+  if (item.image.source === 'local') {
+    const storedBlob = await getLocalImageBlob(item.id);
+    if (storedBlob) {
+      return storedBlob;
+    }
+  }
+
+  return fetchBlob(item.image.objectUrl ?? item.image.src);
+}
+
 export async function uploadWorkspaceItemToStorage(
   client: SupabaseClient,
   bucketName: string,
@@ -84,11 +119,11 @@ export async function uploadWorkspaceItemToStorage(
   const basePath = `${userId}/${workspaceId}/${safeName}-${timeToken}`;
   const originalPath = `${basePath}.${extension}`;
   const previewPath = `${basePath}-preview.jpg`;
-  const originalSrc = item.image.objectUrl ?? item.image.src;
   const previewSrc = item.image.persistedSrc ?? item.image.src;
+  const originalBlob = await resolveOriginalUploadBlob(item);
 
   const [original, preview] = await Promise.all([
-    uploadAsset(client, bucketName, originalPath, originalSrc, item.image.mimeType),
+    uploadAssetFromBlob(client, bucketName, originalPath, originalBlob, item.image.mimeType),
     uploadAsset(client, bucketName, previewPath, previewSrc, 'image/jpeg'),
   ]);
 

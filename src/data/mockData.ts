@@ -33,7 +33,7 @@ export const defaultExifData: ExifData = {
 export const defaultExportSettings: ExportSettings = {
   fileName: 'shunyin_demo_frame',
   format: 'JPG',
-  quality: 'standard',
+  quality: 'max',
 };
 
 export const styleTemplates: StyleTemplate[] = [

@@ -14,15 +14,11 @@ interface ExportRenderedImageOptions {
 }
 
 function mapQuality(quality: ExportSettings['quality']) {
-  if (quality === 'web') {
-    return 0.72;
+  if (quality === 'web' || quality === 'standard' || quality === 'max') {
+    return 1;
   }
 
-  if (quality === 'max') {
-    return 0.96;
-  }
-
-  return 0.86;
+  return 1;
 }
 
 async function resolveExportSource(image: WorkspaceImage) {

@@ -156,7 +156,7 @@ function buildOverlaySvgMarkup(
 }
 
 async function resolveOverlayImageHref(image: WorkspaceImage) {
-  const candidate = image.persistedSrc ?? image.objectUrl ?? image.src;
+  const candidate = image.objectUrl ?? image.src ?? image.persistedSrc;
   return resolveImageDataUrl(candidate);
 }
 
