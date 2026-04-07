@@ -1,7 +1,6 @@
 import { Camera, Settings } from 'lucide-react';
 import type { Dictionary } from '../i18n/translations';
 import type { Language, WorkspaceImage } from '../types/app';
-import { HeaderSignalStrip } from './HeaderSignalStrip';
 
 interface HeaderProps {
   dict: Dictionary;
@@ -34,8 +33,6 @@ export function Header({
             <h1 className="mt-1 font-headline text-lg font-bold tracking-[0.22em] text-primary">{brandName}</h1>
           </div>
         </div>
-
-        <HeaderSignalStrip dict={dict} sourceImage={sourceImage} />
 
         <div className="ml-auto flex shrink-0 items-center gap-3">
           <div className="console-panel mr-1 flex items-center gap-1 rounded-full p-1">

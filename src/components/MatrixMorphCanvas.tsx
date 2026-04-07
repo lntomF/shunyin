@@ -43,6 +43,7 @@ type Particle = {
 
 interface MatrixMorphCanvasProps {
   imageSrc: string;
+  variant?: 'strip' | 'hero';
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -63,12 +64,13 @@ function smoothstep(edge0: number, edge1: number, value: number) {
   return t * t * (3 - 2 * t);
 }
 
-function createFragments(width: number, height: number) {
-  const boundaryX = width * 0.52;
-  const imageWidth = Math.min(width * 0.22, 182);
+function createFragments(width: number, height: number, variant: 'strip' | 'hero') {
+  const isHero = variant === 'hero';
+  const boundaryX = width * (isHero ? 0.48 : 0.52);
+  const imageWidth = Math.min(width * (isHero ? 0.24 : 0.22), isHero ? 320 : 182);
   const imageHeight = imageWidth * 1.24;
-  const imageX = width - imageWidth - width * 0.06;
-  const imageY = (height - imageHeight) / 2;
+  const imageX = width - imageWidth - width * (isHero ? 0.1 : 0.06);
+  const imageY = isHero ? height * 0.18 : (height - imageHeight) / 2;
   const cols = 5;
   const rows = 6;
   const fragments: Fragment[] = [];
@@ -78,8 +80,8 @@ function createFragments(width: number, height: number) {
       const tw = imageWidth / cols;
       const th = imageHeight / rows;
       const delay = 0.08 + col * 0.035 + row * 0.012;
-      const startX = boundaryX - 18 + ((row + col) % 3) * 6 - 8;
-      const startY = imageY + row * th + ((col % 2 === 0 ? 1 : -1) * 8);
+      const startX = boundaryX - (isHero ? 36 : 18) + ((row + col) % 3) * (isHero ? 9 : 6) - 8;
+      const startY = imageY + row * th + ((col % 2 === 0 ? 1 : -1) * (isHero ? 12 : 8));
       let chars = '';
       for (let index = 0; index < 4; index += 1) {
         chars += ALPHABET[(row * cols * 3 + col * 5 + index * 7) % ALPHABET.length];
@@ -109,22 +111,23 @@ function createFragments(width: number, height: number) {
   };
 }
 
-function createParticles(width: number, height: number, boundaryX: number) {
+function createParticles(width: number, height: number, boundaryX: number, variant: 'strip' | 'hero') {
+  const isHero = variant === 'hero';
   const particles: Particle[] = [];
-  for (let index = 0; index < 28; index += 1) {
+  for (let index = 0; index < (isHero ? 40 : 28); index += 1) {
     particles.push({
-      y: height * (0.16 + (index % 12) * 0.055),
-      size: 1.5 + (index % 3),
+      y: height * ((isHero ? 0.12 : 0.16) + (index % 12) * (isHero ? 0.06 : 0.055)),
+      size: (isHero ? 2 : 1.5) + (index % 3),
       delay: (index * 0.037) % 0.72,
       duration: 3.4 + (index % 5) * 0.24,
-      startX: boundaryX - 130 - (index % 4) * 18,
-      endX: boundaryX + 170 + (index % 3) * 22,
+      startX: boundaryX - (isHero ? 190 : 130) - (index % 4) * (isHero ? 24 : 18),
+      endX: boundaryX + (isHero ? 240 : 170) + (index % 3) * (isHero ? 28 : 22),
     });
   }
   return particles;
 }
 
-export function MatrixMorphCanvas({ imageSrc }: MatrixMorphCanvasProps) {
+export function MatrixMorphCanvas({ imageSrc, variant = 'strip' }: MatrixMorphCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -167,30 +170,31 @@ export function MatrixMorphCanvas({ imageSrc }: MatrixMorphCanvasProps) {
       canvas.height = Math.floor(nextHeight * dpr);
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      const nextScene = createFragments(width, height);
+      const nextScene = createFragments(width, height, variant);
       boundaryX = nextScene.boundaryX;
       fragments = nextScene.fragments;
       imageRect = nextScene.imageRect;
-      particles = createParticles(width, height, boundaryX);
+      particles = createParticles(width, height, boundaryX, variant);
     };
 
     const drawMatrixWall = (time: number) => {
-      const startX = width * 0.04;
-      const startY = height * 0.16;
+      const isHero = variant === 'hero';
+      const startX = width * (isHero ? 0.05 : 0.04);
+      const startY = height * (isHero ? 0.14 : 0.16);
       const gradient = context.createLinearGradient(startX, 0, boundaryX, 0);
-      gradient.addColorStop(0, 'rgba(144, 140, 171, 0.82)');
-      gradient.addColorStop(0.82, 'rgba(144, 140, 171, 0.34)');
+      gradient.addColorStop(0, isHero ? 'rgba(144, 140, 171, 0.46)' : 'rgba(144, 140, 171, 0.82)');
+      gradient.addColorStop(0.82, isHero ? 'rgba(144, 140, 171, 0.18)' : 'rgba(144, 140, 171, 0.34)');
       gradient.addColorStop(1, 'rgba(144, 140, 171, 0)');
 
       context.save();
-      context.font = '600 11px "IBM Plex Mono", monospace';
+      context.font = `600 ${isHero ? 13 : 11}px "IBM Plex Mono", monospace`;
       context.fillStyle = gradient;
       context.textBaseline = 'top';
 
       MATRIX_LINES.forEach((line, index) => {
-        const rowY = startY + index * 16;
-        const drift = Math.sin(time * 0.0012 + index * 0.45) * 10;
-        context.globalAlpha = 0.36 + ((Math.sin(time * 0.0018 + index * 0.32) + 1) / 2) * 0.36;
+        const rowY = startY + index * (isHero ? 20 : 16);
+        const drift = Math.sin(time * 0.0012 + index * 0.45) * (isHero ? 14 : 10);
+        context.globalAlpha = (isHero ? 0.18 : 0.36) + ((Math.sin(time * 0.0018 + index * 0.32) + 1) / 2) * (isHero ? 0.18 : 0.36);
         context.fillText(line, startX + drift, rowY);
       });
 
@@ -198,6 +202,7 @@ export function MatrixMorphCanvas({ imageSrc }: MatrixMorphCanvasProps) {
     };
 
     const drawParticles = (progress: number) => {
+      const isHero = variant === 'hero';
       context.save();
       particles.forEach((particle, index) => {
         const local = clamp((progress - particle.delay + 1) % 1 / 0.42, 0, 1);
@@ -209,8 +214,10 @@ export function MatrixMorphCanvas({ imageSrc }: MatrixMorphCanvasProps) {
         const x = lerp(particle.startX, particle.endX, eased);
         const alpha = local < 0.5 ? local * 1.8 : (1 - local) * 1.9;
 
-        context.globalAlpha = alpha;
-        context.fillStyle = index % 5 === 0 ? 'rgba(255,255,255,0.95)' : 'rgba(203,191,255,0.9)';
+        context.globalAlpha = alpha * (isHero ? 0.7 : 1);
+        context.fillStyle = index % 5 === 0
+          ? (isHero ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.95)')
+          : (isHero ? 'rgba(203,191,255,0.58)' : 'rgba(203,191,255,0.9)');
         context.fillRect(x, particle.y, particle.size, particle.size);
       });
       context.restore();
@@ -221,12 +228,13 @@ export function MatrixMorphCanvas({ imageSrc }: MatrixMorphCanvasProps) {
         return;
       }
 
+      const isHero = variant === 'hero';
       context.save();
 
-      context.fillStyle = 'rgba(5, 9, 19, 0.92)';
+      context.fillStyle = isHero ? 'rgba(5, 9, 19, 0.5)' : 'rgba(5, 9, 19, 0.92)';
       context.fillRect(imageRect.x, imageRect.y, imageRect.width, imageRect.height);
 
-      const silhouetteAlpha = 0.08 + smoothstep(0.2, 0.84, progress) * 0.08;
+      const silhouetteAlpha = (isHero ? 0.05 : 0.08) + smoothstep(0.2, 0.84, progress) * (isHero ? 0.05 : 0.08);
       context.globalAlpha = silhouetteAlpha;
       context.drawImage(image, imageRect.x, imageRect.y, imageRect.width, imageRect.height);
       context.globalAlpha = 1;
@@ -244,23 +252,23 @@ export function MatrixMorphCanvas({ imageSrc }: MatrixMorphCanvasProps) {
         const imageAlpha = smoothstep(0.26, 0.88, local);
 
         context.save();
-        context.strokeStyle = 'rgba(121,216,255,0.12)';
+        context.strokeStyle = isHero ? 'rgba(121,216,255,0.08)' : 'rgba(121,216,255,0.12)';
         context.lineWidth = 1;
-        context.fillStyle = 'rgba(12,18,33,0.88)';
+        context.fillStyle = isHero ? 'rgba(12,18,33,0.52)' : 'rgba(12,18,33,0.88)';
         context.fillRect(currentX, currentY, fragment.tw, fragment.th);
         context.strokeRect(currentX + 0.5, currentY + 0.5, fragment.tw - 1, fragment.th - 1);
 
         if (charAlpha > 0.02) {
-          context.globalAlpha = charAlpha;
-          context.fillStyle = 'rgba(121,216,255,0.82)';
-          context.font = '600 9px "IBM Plex Mono", monospace';
+          context.globalAlpha = charAlpha * (isHero ? 0.55 : 1);
+          context.fillStyle = isHero ? 'rgba(121,216,255,0.58)' : 'rgba(121,216,255,0.82)';
+          context.font = `600 ${isHero ? 10 : 9}px "IBM Plex Mono", monospace`;
           context.textAlign = 'center';
           context.textBaseline = 'middle';
           context.fillText(fragment.chars, currentX + fragment.tw / 2, currentY + fragment.th / 2);
         }
 
         if (imageAlpha > 0.02) {
-          context.globalAlpha = imageAlpha;
+          context.globalAlpha = imageAlpha * (isHero ? 0.78 : 1);
           context.drawImage(
             image,
             fragment.sx,
@@ -290,16 +298,16 @@ export function MatrixMorphCanvas({ imageSrc }: MatrixMorphCanvasProps) {
       const sweepX = imageRect.x - 24 + (imageRect.width + 48) * smoothstep(0.24, 0.78, progress);
       const sweepAlpha = smoothstep(0.24, 0.52, progress) * (1 - smoothstep(0.82, 0.96, progress));
       context.save();
-      context.globalAlpha = sweepAlpha;
+      context.globalAlpha = sweepAlpha * (isHero ? 0.6 : 1);
       const sweep = context.createLinearGradient(sweepX - 26, 0, sweepX + 26, 0);
       sweep.addColorStop(0, 'rgba(255,255,255,0)');
-      sweep.addColorStop(0.5, 'rgba(255,255,255,0.34)');
+      sweep.addColorStop(0.5, isHero ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.34)');
       sweep.addColorStop(1, 'rgba(255,255,255,0)');
       context.fillStyle = sweep;
       context.fillRect(imageRect.x, imageRect.y, imageRect.width, imageRect.height);
       context.restore();
 
-      context.strokeStyle = 'rgba(121,216,255,0.16)';
+      context.strokeStyle = isHero ? 'rgba(121,216,255,0.1)' : 'rgba(121,216,255,0.16)';
       context.strokeRect(imageRect.x + 0.5, imageRect.y + 0.5, imageRect.width - 1, imageRect.height - 1);
       context.restore();
     };
@@ -312,9 +320,15 @@ export function MatrixMorphCanvas({ imageSrc }: MatrixMorphCanvasProps) {
       const progress = ((time / 1000) % 4.9) / 4.9;
 
       const bg = context.createLinearGradient(0, 0, width, 0);
-      bg.addColorStop(0, '#070c17');
-      bg.addColorStop(0.5, '#050a14');
-      bg.addColorStop(1, '#070c17');
+      if (variant === 'hero') {
+        bg.addColorStop(0, '#07101d');
+        bg.addColorStop(0.5, '#081322');
+        bg.addColorStop(1, '#060d18');
+      } else {
+        bg.addColorStop(0, '#070c17');
+        bg.addColorStop(0.5, '#050a14');
+        bg.addColorStop(1, '#070c17');
+      }
       context.fillStyle = bg;
       context.fillRect(0, 0, width, height);
 
@@ -336,7 +350,7 @@ export function MatrixMorphCanvas({ imageSrc }: MatrixMorphCanvasProps) {
     return () => {
       window.cancelAnimationFrame(animationFrame);
     };
-  }, [imageSrc]);
+  }, [imageSrc, variant]);
 
   return <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />;
 }
