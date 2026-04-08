@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FolderOpen, ImagePlus } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { Dictionary } from '../../i18n/translations';
@@ -38,6 +38,11 @@ export function HomeView({
 }: HomeViewProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const imageSrc = sourceImage.objectUrl ?? sourceImage.src;
+  const headingLine1Chars = Array.from(dict.homeHeadingLine1);
+  const headingLine2Chars = Array.from(dict.homeHeadingLine2);
+  const [typedLine1Length, setTypedLine1Length] = useState(0);
+  const [typedLine2Length, setTypedLine2Length] = useState(0);
+  const [typingPhase, setTypingPhase] = useState<'typing-line-1' | 'typing-line-2' | 'pause' | 'deleting-line-2' | 'deleting-line-1'>('typing-line-1');
 
   const handleFiles = (files: FileList | File[] | null | undefined) => {
     const nextFiles = Array.from(files ?? []);
@@ -73,6 +78,72 @@ export function HomeView({
     };
   }, [sourceImage.source]);
 
+  useEffect(() => {
+    setTypedLine1Length(0);
+    setTypedLine2Length(0);
+    setTypingPhase('typing-line-1');
+  }, [dict.homeHeadingLine1, dict.homeHeadingLine2]);
+
+  useEffect(() => {
+    const typingDelay = 130;
+    const deletingDelay = 70;
+    const linePauseDelay = 260;
+    const loopPauseDelay = 1400;
+
+    const timeout = window.setTimeout(() => {
+      switch (typingPhase) {
+        case 'typing-line-1':
+          if (typedLine1Length < headingLine1Chars.length) {
+            setTypedLine1Length((current) => current + 1);
+            return;
+          }
+          setTypingPhase('typing-line-2');
+          return;
+        case 'typing-line-2':
+          if (typedLine2Length < headingLine2Chars.length) {
+            setTypedLine2Length((current) => current + 1);
+            return;
+          }
+          setTypingPhase('pause');
+          return;
+        case 'pause':
+          setTypingPhase('deleting-line-2');
+          return;
+        case 'deleting-line-2':
+          if (typedLine2Length > 0) {
+            setTypedLine2Length((current) => current - 1);
+            return;
+          }
+          setTypingPhase('deleting-line-1');
+          return;
+        case 'deleting-line-1':
+          if (typedLine1Length > 0) {
+            setTypedLine1Length((current) => current - 1);
+            return;
+          }
+          setTypingPhase('typing-line-1');
+          return;
+        default:
+          return;
+      }
+    }, typingPhase === 'pause'
+      ? loopPauseDelay
+      : typingPhase === 'typing-line-1' || typingPhase === 'typing-line-2'
+        ? (typingPhase === 'typing-line-2' && typedLine2Length === 0) || (typingPhase === 'typing-line-1' && typedLine1Length === headingLine1Chars.length)
+          ? linePauseDelay
+          : typingDelay
+        : deletingDelay);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [headingLine1Chars.length, headingLine2Chars.length, typedLine1Length, typedLine2Length, typingPhase]);
+
+  const typedLine1 = headingLine1Chars.slice(0, typedLine1Length).join('');
+  const typedLine2 = headingLine2Chars.slice(0, typedLine2Length).join('');
+  const isFirstLineActive = typingPhase === 'typing-line-1' || typingPhase === 'deleting-line-1';
+  const isSecondLineActive = typingPhase === 'typing-line-2' || typingPhase === 'pause' || typingPhase === 'deleting-line-2';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -104,8 +175,24 @@ export function HomeView({
           </span>
 
           <h2 className="mx-auto mt-6 max-w-4xl font-headline text-6xl font-bold leading-[0.9] tracking-[-0.05em] text-primary lg:text-8xl">
-            <span className="block">{dict.homeHeadingLine1}</span>
-            <span className="block text-secondary">{dict.homeHeadingLine2}</span>
+            <span className="relative block">
+              <span className="invisible">{dict.homeHeadingLine1}</span>
+              <span className="absolute inset-0">
+                {typedLine1}
+                {isFirstLineActive && (
+                  <span className="ml-[0.05em] inline-block h-[0.88em] w-[0.08em] translate-y-[0.08em] animate-pulse bg-current align-baseline" />
+                )}
+              </span>
+            </span>
+            <span className="relative block text-secondary">
+              <span className="invisible">{dict.homeHeadingLine2}</span>
+              <span className="absolute inset-0">
+                {typedLine2}
+                {isSecondLineActive && (
+                  <span className="ml-[0.05em] inline-block h-[0.88em] w-[0.08em] translate-y-[0.08em] animate-pulse bg-current align-baseline" />
+                )}
+              </span>
+            </span>
           </h2>
 
           <p className="mx-auto mt-8 max-w-xl text-base leading-8 text-on-surface-variant">
