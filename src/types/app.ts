@@ -2,6 +2,8 @@ import type { TranslationKey } from '../i18n/translations';
 
 export type Language = 'en' | 'zh';
 
+export type Theme = 'dark' | 'light';
+
 export type ViewType = 'import' | 'editor' | 'styles' | 'export';
 
 export type PreviewMode = 'original' | 'processed';
@@ -56,7 +58,7 @@ export interface WorkspaceImage {
   height?: number;
   sizeBytes?: number;
   mimeType?: string;
-  source: 'demo' | 'local' | 'cloud';
+  source: 'local' | 'cloud';
   createdAt: string;
 }
 
@@ -72,7 +74,7 @@ export interface SessionItem {
   coverSrc: string;
   updatedAt: string;
   itemCount: number;
-  source: 'demo' | 'local' | 'cloud';
+  source: 'local' | 'cloud';
   cloudWorkspaceId?: string;
   items?: WorkspaceItem[];
   activeImageId?: string;

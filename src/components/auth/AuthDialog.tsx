@@ -213,13 +213,13 @@ export function AuthDialog({
           )}
 
           {isResetPassword && password && confirmPassword && password !== confirmPassword && (
-            <div className="rounded-2xl border border-[#7f3f3f]/40 bg-[#2a1616] px-4 py-3 text-sm text-[#f0b5b5]">
+            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">
               {dict.authPasswordMismatch}
             </div>
           )}
 
           {errorMessage && (
-            <div className="rounded-2xl border border-[#7f3f3f]/40 bg-[#2a1616] px-4 py-3 text-sm text-[#f0b5b5]">
+            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">
               {errorMessage}
             </div>
           )}
@@ -233,7 +233,7 @@ export function AuthDialog({
           <button
             type="submit"
             disabled={pending || (isResetPassword && password !== confirmPassword)}
-            className="w-full rounded-xl bg-primary px-5 py-4 text-sm font-headline font-black uppercase tracking-[0.2em] text-surface transition-transform hover:bg-white active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
+            className="w-full rounded-xl bg-primary px-5 py-4 text-sm font-headline font-black uppercase tracking-[0.2em] text-surface transition-transform hover:opacity-90 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
           >
             {pending
               ? dict.authProcessing

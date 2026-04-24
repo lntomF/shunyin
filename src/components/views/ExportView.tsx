@@ -170,7 +170,7 @@ export function ExportView({
           <button
             onClick={onExportAll}
             disabled={exportStatus === 'rendering'}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-[1.2rem] border border-secondary/25 bg-primary px-5 py-3.5 text-sm font-headline font-bold uppercase tracking-[0.2em] text-surface shadow-[0_12px_32px_rgba(121,216,255,0.14)] shutter-transition hover:-translate-y-0.5 hover:bg-white active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-[1.2rem] border border-secondary/25 bg-primary px-5 py-3.5 text-sm font-headline font-bold uppercase tracking-[0.2em] text-surface shadow-md shutter-transition hover:-translate-y-0.5 hover:opacity-90 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
           >
             {exportStatus === 'rendering' ? <LoaderCircle size={16} className="animate-spin" /> : <ArrowRight size={16} />}
             {hasMultiple ? `${dict.exportAllLabel} (${workspaceItems.length})` : dict.exportNow}

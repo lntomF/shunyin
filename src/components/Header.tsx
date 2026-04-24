@@ -1,14 +1,16 @@
-import { Camera, Settings } from 'lucide-react';
+import { Camera, Settings, Sun, Moon } from 'lucide-react';
 import type { Dictionary } from '../i18n/translations';
-import type { Language, WorkspaceImage } from '../types/app';
+import type { Language, Theme, WorkspaceImage } from '../types/app';
 
 interface HeaderProps {
   dict: Dictionary;
   language: Language;
   setLanguage: (lang: Language) => void;
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
   brandName: string;
   settingsLabel: string;
-  sourceImage: WorkspaceImage;
+  sourceImage?: WorkspaceImage | null;
   onOpenSettings: () => void;
 }
 
@@ -16,13 +18,15 @@ export function Header({
   dict,
   language,
   setLanguage,
+  theme,
+  setTheme,
   brandName,
   settingsLabel,
   sourceImage,
   onOpenSettings,
 }: HeaderProps) {
   return (
-    <header className="fixed top-0 z-50 w-full bg-[linear-gradient(180deg,rgba(7,16,29,0.92),rgba(7,16,29,0.5)_72%,transparent)] backdrop-blur-xl">
+    <header className="fixed top-0 z-50 w-full site-header backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl items-center gap-5 px-6 py-4">
         <div className="flex shrink-0 items-center gap-4">
           <button aria-label={brandName} className="flex h-11 w-11 items-center justify-center rounded-2xl border border-secondary/20 bg-surface-container-high text-secondary shutter-transition hover:-translate-y-0.5 hover:border-secondary/35 active:scale-95">
@@ -35,6 +39,15 @@ export function Header({
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            aria-label="Toggle theme"
+            className="console-panel flex items-center justify-center rounded-full p-2 text-primary shutter-transition hover:-translate-y-0.5 hover:text-secondary active:scale-95"
+          >
+            {theme === 'dark' ? <Sun size={20} strokeWidth={1.5} /> : <Moon size={20} strokeWidth={1.5} />}
+          </button>
+
           <div className="console-panel mr-1 flex items-center gap-1 rounded-full p-1">
             <button
               type="button"

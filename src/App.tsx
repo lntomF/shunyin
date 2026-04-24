@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
@@ -80,7 +80,6 @@ export default function App() {
 
     if (!result.session || !result.workspaceId) {
       actions.setCurrentCloudWorkspace(null);
-      actions.useDemoImage();
       actions.setCurrentView('import');
       return;
     }
@@ -113,6 +112,14 @@ export default function App() {
     />
   );
 
+  useEffect(() => {
+    if (state.theme === 'light') {
+      document.body.classList.add('light');
+    } else {
+      document.body.classList.remove('light');
+    }
+  }, [state.theme]);
+
   return (
     <>
       <div className="min-h-screen bg-background text-on-surface">
@@ -120,6 +127,8 @@ export default function App() {
           dict={dict}
           language={state.language}
           setLanguage={actions.setLanguage}
+          theme={state.theme}
+          setTheme={actions.setTheme}
           brandName={dict.brandName}
           settingsLabel={dict.settingsLabel}
           sourceImage={state.sourceImage}
@@ -132,6 +141,7 @@ export default function App() {
               <HomeView
                 dict={dict}
                 language={state.language}
+                theme={state.theme}
                 sessions={state.recentSessions}
                 cloudSessions={cloud.cloudSessions}
                 showCloudSessions={auth.status === 'authenticated' && cloud.isEnabled}
@@ -166,18 +176,16 @@ export default function App() {
                   await cloud.deleteWorkspace(session.cloudWorkspaceId);
 
                   if (state.currentCloudWorkspaceId === session.cloudWorkspaceId) {
-                    actions.useDemoImage();
                     actions.setCurrentView('import');
                   }
                 }}
                 deletingCloudWorkspaceId={cloud.deletingWorkspaceId}
                 onContinueEditing={() => actions.setCurrentView('editor')}
-                onUseDemo={actions.useDemoImage}
                 onOpenSettings={() => setIsSettingsOpen(true)}
               />
             )}
 
-            {activeView === 'editor' && (
+            {activeView === 'editor' && state.sourceImage && state.exifData && (
               <EditorView
                 dict={dict}
                 sourceImage={state.sourceImage}
@@ -198,7 +206,7 @@ export default function App() {
               />
             )}
 
-            {activeView === 'export' && (
+            {activeView === 'export' && state.sourceImage && state.exifData && (
               <ExportView
                 dict={dict}
                 sourceImage={state.sourceImage}

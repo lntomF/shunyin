@@ -1,4 +1,4 @@
-import { defaultExifData, demoImage } from '../data/mockData';
+import { defaultExifData } from '../data/mockData';
 import type {
   ExportHistoryItem,
   ExportSettings,
@@ -74,7 +74,7 @@ export async function importWorkspaceFiles(files: File[], language: Language): P
     session: {
       id: `session-${Date.now()}`,
       title: batchTitle,
-      coverSrc: firstItem?.image.persistedSrc ?? firstItem?.image.src ?? demoImage.src,
+      coverSrc: firstItem?.image.persistedSrc ?? firstItem?.image.src ?? '',
       updatedAt: firstItem?.image.createdAt ?? new Date().toISOString(),
       itemCount: importedItems.length,
       source: 'local',
@@ -83,7 +83,7 @@ export async function importWorkspaceFiles(files: File[], language: Language): P
         ...item,
         image: normalizeImage(item.image),
       })),
-      image: normalizeImage(firstItem?.image ?? demoImage),
+      image: firstItem ? normalizeImage(firstItem.image) : normalizeImage(importedItems[0].image),
       exifData: firstItem?.exifData ?? defaultExifData,
     },
   };

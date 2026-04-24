@@ -1,5 +1,5 @@
 {
   "name": "shunyin",
-  "description": "",
+  "description": "A local-first cinematic watermark workspace built with Vite + React + TypeScript. Supports photo import, EXIF editing, style preview, and browser export.",
   "requestFramePermissions": []
 }

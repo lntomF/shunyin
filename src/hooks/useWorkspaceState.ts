@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
-import { defaultExifData, demoImage } from '../data/mockData';
-import type { ExifData, ExportSettings, Language, PreviewMode, SessionItem, StyleTemplate, UploadStatus, ViewType } from '../types/app';
+import type { ExifData, ExportSettings, Language, PreviewMode, SessionItem, StyleTemplate, Theme, UploadStatus, ViewType } from '../types/app';
 import { getLocalImageBlobs } from '../utils/localImageStore';
 import {
   createInitialState,
@@ -23,8 +22,8 @@ export function useWorkspaceState() {
   const missingLocalImageIdsRef = useRef<Set<string>>(new Set());
 
   const activeItem = useMemo(
-    () => getActiveWorkspaceItem(state.workspaceItems, state.selectedImageId) ?? createWorkspaceItem(demoImage, state.language, defaultExifData),
-    [state.language, state.selectedImageId, state.workspaceItems],
+    () => getActiveWorkspaceItem(state.workspaceItems, state.selectedImageId) ?? null,
+    [state.selectedImageId, state.workspaceItems],
   );
 
   useEffect(() => {
@@ -111,6 +110,10 @@ export function useWorkspaceState() {
     dispatch({ type: 'set_language', language });
   }, []);
 
+  const setTheme = useCallback((theme: Theme) => {
+    dispatch({ type: 'set_theme', theme });
+  }, []);
+
   const setPreviewMode = useCallback((previewMode: PreviewMode) => {
     dispatch({ type: 'set_preview_mode', previewMode });
   }, []);
@@ -169,7 +172,7 @@ export function useWorkspaceState() {
         dispatch({
           type: 'import_succeeded',
           items: importedItems,
-          selectedImageId: firstItem?.id ?? demoImage.id,
+          selectedImageId: firstItem?.id ?? '',
           session,
         });
       } catch {
@@ -188,11 +191,6 @@ export function useWorkspaceState() {
     revokeTrackedObjectUrls();
     dispatch({ type: 'open_session', session });
   }, [revokeTrackedObjectUrls, state.recentSessions]);
-
-  const useDemoImage = useCallback(() => {
-    revokeTrackedObjectUrls();
-    dispatch({ type: 'use_demo' });
-  }, [revokeTrackedObjectUrls]);
 
   const loadSession = useCallback((session: SessionItem) => {
     dispatch({ type: 'load_session', session });
@@ -248,12 +246,13 @@ export function useWorkspaceState() {
   return {
     state: {
       ...state,
-      sourceImage: activeItem.image,
-      exifData: activeItem.exifData,
+      sourceImage: activeItem?.image ?? null,
+      exifData: activeItem?.exifData ?? null,
     },
     actions: {
       setCurrentView,
       setLanguage,
+      setTheme,
       setPreviewMode,
       selectStyle,
       selectImage,
@@ -266,7 +265,6 @@ export function useWorkspaceState() {
       openSession,
       loadSession,
       setCurrentCloudWorkspace,
-      useDemoImage,
       exportCurrent,
       exportAll,
     },
