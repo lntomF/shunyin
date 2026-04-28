@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ExifData, PreviewMode, StyleTemplate, WorkspaceImage } from '../../types/app';
 import { createOverlayDataUrl, getRenderedOverlaySize } from '../../utils/overlay';
 
@@ -31,39 +31,56 @@ export function PreviewStage({
   const height = image.height ?? 1066;
   const renderedSize = useMemo(() => getRenderedOverlaySize(styleTemplate, width, height), [height, styleTemplate, width]);
   const [overlaySrc, setOverlaySrc] = useState<string | null>(null);
+  const renderSerialRef = useRef(0);
+  const lastRenderContextRef = useRef<string | null>(null);
+  const renderContext = `${previewMode}:${image.id}:${image.objectUrl ?? image.src}:${styleTemplate.id}:${styleTitle}:${brandName}:${width}x${height}`;
 
   useEffect(() => {
     if (previewMode !== 'processed') {
+      setOverlaySrc(null);
+      lastRenderContextRef.current = null;
       return;
     }
 
     let active = true;
-    setOverlaySrc(null);
+    const renderSerial = renderSerialRef.current + 1;
+    const isNewRenderContext = lastRenderContextRef.current !== renderContext;
+    const renderDelay = isNewRenderContext ? 0 : 360;
 
-    createOverlayDataUrl({
-      width,
-      height,
-      image,
-      exifData,
-      styleTemplate,
-      styleTitle,
-      brandName,
-    })
-      .then((nextOverlaySrc) => {
-        if (active) {
-          setOverlaySrc(nextOverlaySrc);
-        }
+    renderSerialRef.current = renderSerial;
+    lastRenderContextRef.current = renderContext;
+
+    if (isNewRenderContext) {
+      setOverlaySrc(null);
+    }
+
+    const renderTimer = window.setTimeout(() => {
+      createOverlayDataUrl({
+        width,
+        height,
+        image,
+        exifData,
+        styleTemplate,
+        styleTitle,
+        brandName,
       })
-      .catch(() => {
-        if (active) {
-          setOverlaySrc(null);
-        }
-      });
+        .then((nextOverlaySrc) => {
+          if (active && renderSerialRef.current === renderSerial) {
+            setOverlaySrc(nextOverlaySrc);
+          }
+        })
+        .catch(() => {
+          if (active && renderSerialRef.current === renderSerial) {
+            setOverlaySrc(null);
+          }
+        });
+    }, renderDelay);
 
     return () => {
       active = false;
+      window.clearTimeout(renderTimer);
     };
-  }, [brandName, exifData, height, image, previewMode, styleTemplate, styleTitle, width]);
+  }, [brandName, exifData, height, image, previewMode, renderContext, styleTemplate, styleTitle, width]);
 
   if (previewMode === 'processed') {
     return (

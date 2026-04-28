@@ -310,7 +310,7 @@ export function getLocalExifFallbacks(language: Language): Omit<ExifData, 'fileS
   if (language === 'zh') {
     return {
       cameraBody: '未检测到机身信息',
-      lens: '未检测到镜头信息',
+      lens: '',
       aperture: '--',
       shutter: '--',
       iso: '--',
@@ -323,7 +323,7 @@ export function getLocalExifFallbacks(language: Language): Omit<ExifData, 'fileS
 
   return {
     cameraBody: 'Camera info unavailable',
-    lens: 'Lens info unavailable',
+    lens: '',
     aperture: '--',
     shutter: '--',
     iso: '--',

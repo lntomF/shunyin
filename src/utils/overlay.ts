@@ -37,6 +37,28 @@ function compactValue(value: string) {
   return trimmed && trimmed !== '--' ? trimmed : undefined;
 }
 
+const EMPTY_LENS_LABELS = new Set([
+  'lens info unavailable',
+  'lens unavailable',
+  'unknown lens',
+  'n/a',
+  '未检测到镜头信息',
+  '镜头信息不可用',
+]);
+
+function buildLensModel(exifData: ExifData) {
+  const lens = compactValue(exifData.lens);
+  if (!lens) {
+    return null;
+  }
+
+  return EMPTY_LENS_LABELS.has(lens.toLowerCase()) ? null : lens;
+}
+
+function buildCoverTitle(exifData: ExifData, fallbackBrandName: string) {
+  return compactValue(exifData.watermarkTitle ?? '') ?? fallbackBrandName;
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
@@ -51,6 +73,10 @@ function getScaledMax(maxValue: number, scale: number) {
   return Math.round(maxValue * scale);
 }
 
+function isPortraitFrame(sourceWidth: number, sourceHeight: number) {
+  return sourceHeight > sourceWidth * 1.12;
+}
+
 function buildCameraTitle(exifData: ExifData) {
   return compactValue(exifData.cameraBody) ?? 'Camera';
 }
@@ -61,8 +87,8 @@ function buildBrandLabel(exifData: ExifData, fallbackBrandName: string) {
   return compactValue(firstToken) ?? fallbackBrandName;
 }
 
-function extractFocalLength(lens: string) {
-  const normalizedLens = compactValue(lens);
+function extractFocalLength(lens: string | null) {
+  const normalizedLens = lens ? compactValue(lens) : undefined;
   if (!normalizedLens) {
     return undefined;
   }
@@ -85,14 +111,15 @@ function normalizeIso(value: string) {
 }
 
 function buildParameterLine(exifData: ExifData) {
+  const lensModel = buildLensModel(exifData);
   const values = [
-    extractFocalLength(exifData.lens),
+    extractFocalLength(lensModel),
     compactValue(exifData.aperture),
     compactValue(exifData.shutter),
     normalizeIso(exifData.iso),
   ].filter((value): value is string => Boolean(value));
 
-  return values.join(' ') || compactValue(exifData.lens) || '--';
+  return values.join(' ') || '--';
 }
 
 function formatCaptureTime(isoDate: string) {
@@ -115,7 +142,12 @@ export function getRenderedOverlaySize(styleTemplate: StyleTemplate, sourceWidth
 
   switch (styleTemplate.styleType) {
     case 'minimal-white-footer': {
-      const footerHeight = clamp(Math.round(sourceHeight * 0.135), 88, getScaledMax(158, layoutScale));
+      const isPortrait = isPortraitFrame(sourceWidth, sourceHeight);
+      const footerHeight = clamp(
+        Math.round(isPortrait ? sourceWidth * 0.18 : sourceHeight * 0.135),
+        isPortrait ? 112 : 88,
+        getScaledMax(isPortrait ? 220 : 158, layoutScale),
+      );
       return {
         width: sourceWidth,
         height: sourceHeight + footerHeight,
@@ -128,9 +160,14 @@ export function getRenderedOverlaySize(styleTemplate: StyleTemplate, sourceWidth
       };
     case 'film-border': {
       const minEdge = Math.min(sourceWidth, sourceHeight);
+      const isPortrait = isPortraitFrame(sourceWidth, sourceHeight);
       const sidePadding = clamp(Math.round(minEdge * 0.07), 46, getScaledMax(108, layoutScale));
       const topPadding = clamp(Math.round(minEdge * 0.055), 34, getScaledMax(88, layoutScale));
-      const bottomPadding = clamp(Math.round(minEdge * 0.16), 96, getScaledMax(210, layoutScale));
+      const bottomPadding = clamp(
+        Math.round(minEdge * (isPortrait ? 0.18 : 0.16)),
+        isPortrait ? 112 : 96,
+        getScaledMax(isPortrait ? 240 : 210, layoutScale),
+      );
 
       return {
         width: sourceWidth + sidePadding * 2,
@@ -139,9 +176,14 @@ export function getRenderedOverlaySize(styleTemplate: StyleTemplate, sourceWidth
     }
     case 'portrait-gallery-card': {
       const minEdge = Math.min(sourceWidth, sourceHeight);
+      const isPortrait = isPortraitFrame(sourceWidth, sourceHeight);
       const sidePadding = clamp(Math.round(minEdge * 0.12), 44, getScaledMax(140, layoutScale));
       const topPadding = clamp(Math.round(minEdge * 0.08), 28, getScaledMax(96, layoutScale));
-      const footerHeight = clamp(Math.round(minEdge * 0.22), 118, getScaledMax(240, layoutScale));
+      const footerHeight = clamp(
+        Math.round(minEdge * (isPortrait ? 0.24 : 0.22)),
+        isPortrait ? 132 : 118,
+        getScaledMax(isPortrait ? 270 : 240, layoutScale),
+      );
 
       return {
         width: sourceWidth + sidePadding * 2,
@@ -149,7 +191,12 @@ export function getRenderedOverlaySize(styleTemplate: StyleTemplate, sourceWidth
       };
     }
     case 'white-footer-brand': {
-      const footerHeight = clamp(Math.round(sourceHeight * 0.12), 76, getScaledMax(132, layoutScale));
+      const isPortrait = isPortraitFrame(sourceWidth, sourceHeight);
+      const footerHeight = clamp(
+        Math.round(isPortrait ? sourceWidth * 0.16 : sourceHeight * 0.12),
+        isPortrait ? 104 : 76,
+        getScaledMax(isPortrait ? 210 : 132, layoutScale),
+      );
       return {
         width: sourceWidth,
         height: sourceHeight + footerHeight,
@@ -178,7 +225,9 @@ function buildOverlaySvgMarkup(
       brandName,
       captureTimeText: formatCaptureTime(image.createdAt),
       cameraTitle: buildCameraTitle(exifData),
+      coverTitle: buildCoverTitle(exifData, brandName),
       brandLabel: buildBrandLabel(exifData, brandName),
+      lensModel: buildLensModel(exifData),
       parameterLine: buildParameterLine(exifData),
     }),
   );

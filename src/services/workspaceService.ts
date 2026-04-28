@@ -1,4 +1,4 @@
-import { defaultExifData } from '../data/mockData';
+import { defaultExifData, styleTemplates } from '../data/mockData';
 import type {
   ExportHistoryItem,
   ExportSettings,
@@ -109,6 +109,10 @@ async function renderWorkspaceItem({ item, exportSettings, selectedStyle, styleT
   });
 }
 
+function getItemStyle(item: WorkspaceItem, fallbackStyle: StyleTemplate) {
+  return styleTemplates.find((template) => template.id === item.styleId) ?? fallbackStyle;
+}
+
 export async function exportCurrentWorkspaceItem(options: ExportWorkspaceItemOptions): Promise<ExportHistoryItem[]> {
   const result = await renderWorkspaceItem(options);
 
@@ -137,6 +141,7 @@ export async function exportWorkspaceBatch({
   const historyItems: ExportHistoryItem[] = [];
 
   for (const item of items) {
+    const itemStyle = getItemStyle(item, selectedStyle);
     const nextExportSettings = {
       ...exportSettings,
       fileName: items.length === 1 && item.id === selectedImageId
@@ -147,7 +152,7 @@ export async function exportWorkspaceBatch({
     const result = await renderWorkspaceItem({
       item,
       exportSettings: nextExportSettings,
-      selectedStyle,
+      selectedStyle: itemStyle,
       styleTitle,
       brandName,
     });
@@ -155,7 +160,7 @@ export async function exportWorkspaceBatch({
     historyItems.push({
       id: `export-${item.id}-${Date.now()}-${historyItems.length}`,
       fileName: result.fileName,
-      styleId: selectedStyle.id,
+      styleId: itemStyle.id,
       format: nextExportSettings.format,
       quality: nextExportSettings.quality,
       createdAt: new Date().toISOString(),

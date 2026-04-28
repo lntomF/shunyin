@@ -5,11 +5,6 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function compactValue(value: string) {
-  const trimmed = value.trim();
-  return trimmed && trimmed !== '--' ? trimmed : undefined;
-}
-
 function truncateText(value: string, maxLength: number) {
   if (value.length <= maxLength) {
     return value;
@@ -28,22 +23,36 @@ export function MagazineCoverTemplate({
   imageHref,
   image,
   cameraTitle,
-  brandName,
+  coverTitle,
   parameterLine,
-  exifData,
+  lensModel,
   captureTimeText,
 }: WatermarkSvgProps) {
   const sourceWidth = Math.max(image.width ?? width, 1);
   const sourceHeight = Math.max(image.height ?? height, 1);
   const layoutScale = getWatermarkLayoutScale(sourceWidth, sourceHeight);
   const scaledMax = (value: number) => Math.round(value * layoutScale);
-  const padding = clamp(Math.round(Math.min(width, height) * 0.055), 34, scaledMax(86));
-  const mastheadSize = clamp(Math.round(width * 0.105), 58, scaledMax(138));
-  const issueSize = clamp(Math.round(width * 0.012), 10, scaledMax(17));
-  const coverTitleSize = clamp(Math.round(width * 0.048), 30, scaledMax(72));
-  const metaSize = clamp(Math.round(width * 0.016), 13, scaledMax(23));
-  const smallSize = clamp(Math.round(width * 0.0105), 9, scaledMax(15));
-  const lensText = truncateText(compactValue(exifData.lens) ?? 'Lens unavailable', maxChars(width * 0.54, metaSize));
+  const isPortrait = sourceHeight > sourceWidth * 1.12;
+  const padding = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.038), 54, scaledMax(150))
+    : clamp(Math.round(Math.min(width, height) * 0.055), 34, scaledMax(86));
+  const mastheadSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.07), 100, scaledMax(300))
+    : clamp(Math.round(width * 0.105), 58, scaledMax(138));
+  const issueSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.014), 18, scaledMax(56))
+    : clamp(Math.round(width * 0.012), 10, scaledMax(17));
+  const coverTitleSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.034), 52, scaledMax(140))
+    : clamp(Math.round(width * 0.048), 30, scaledMax(72));
+  const metaSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.019), 30, scaledMax(78))
+    : clamp(Math.round(width * 0.016), 13, scaledMax(23));
+  const smallSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.014), 18, scaledMax(56))
+    : clamp(Math.round(width * 0.0105), 9, scaledMax(15));
+  const mastheadText = truncateText(coverTitle, maxChars(width * 0.72, mastheadSize));
+  const lensText = lensModel ? truncateText(lensModel, maxChars(width * 0.54, metaSize)) : null;
   const cameraText = truncateText(cameraTitle.toUpperCase(), maxChars(width * 0.62, coverTitleSize));
   const parameterText = truncateText(parameterLine, maxChars(width * 0.46, metaSize));
   const issueText = truncateText(captureTimeText, maxChars(width * 0.24, smallSize));
@@ -84,7 +93,7 @@ export function MagazineCoverTemplate({
           fontWeight="700"
           letterSpacing="-0.01em"
         >
-          {brandName}
+          {mastheadText}
         </text>
         <text
           x={padding}
@@ -110,17 +119,19 @@ export function MagazineCoverTemplate({
           {cameraText}
         </text>
         <rect x={padding} y={height - padding - metaSize * 1.05} width={width * 0.18} height={2} fill="#FFF8EA" fillOpacity="0.82" />
-        <text
-          x={padding}
-          y={height - padding + metaSize * 0.25}
-          fill="#FFF8EA"
-          fontSize={metaSize}
-          fontFamily="Inter, Arial, sans-serif"
-          fontWeight="680"
-          letterSpacing="0"
-        >
-          {lensText}
-        </text>
+        {lensText && (
+          <text
+            x={padding}
+            y={height - padding + metaSize * 0.25}
+            fill="#FFF8EA"
+            fontSize={metaSize}
+            fontFamily="Inter, Arial, sans-serif"
+            fontWeight="680"
+            letterSpacing="0"
+          >
+            {lensText}
+          </text>
+        )}
         <text
           x={width - padding}
           y={height - padding + metaSize * 0.25}

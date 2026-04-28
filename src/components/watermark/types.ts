@@ -10,6 +10,8 @@ export interface WatermarkSvgProps {
   brandName: string;
   captureTimeText: string;
   cameraTitle: string;
+  coverTitle: string;
   brandLabel: string;
+  lensModel: string | null;
   parameterLine: string;
 }

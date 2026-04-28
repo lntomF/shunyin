@@ -24,6 +24,11 @@ const LEGACY_STORAGE_KEYS = ['shunyin.workspace.v2', 'shunyin.workspace.v1'];
 const STORAGE_SCHEMA_VERSION = 3;
 const MAX_SESSIONS = 6;
 const MAX_EXPORTS = 12;
+const DEFAULT_STYLE_ID = styleTemplates[0].id;
+
+function resolveStyleId(styleId: string | undefined): StyleTemplate['id'] {
+  return styleTemplates.some((template) => template.id === styleId) ? styleId as StyleTemplate['id'] : DEFAULT_STYLE_ID;
+}
 
 export interface WorkspaceState {
   currentView: ViewType;
@@ -134,6 +139,7 @@ export function buildExifForImage(image: WorkspaceImage, language: Language, exi
 
   return {
     cameraBody: exifOverrides.cameraBody ?? fallbackExif.cameraBody,
+    watermarkTitle: exifOverrides.watermarkTitle,
     lens: exifOverrides.lens ?? fallbackExif.lens,
     aperture: exifOverrides.aperture ?? fallbackExif.aperture,
     shutter: exifOverrides.shutter ?? fallbackExif.shutter,
@@ -152,15 +158,17 @@ export function createWorkspaceItem(image: WorkspaceImage, language: Language, e
     id: image.id,
     image,
     exifData: buildExifForImage(image, language, exifOverrides),
+    styleId: DEFAULT_STYLE_ID,
   };
 }
 
-export function normalizeWorkspaceItem(item: WorkspaceItem, language: Language): WorkspaceItem {
+export function normalizeWorkspaceItem(item: WorkspaceItem, language: Language, fallbackStyleId?: StyleTemplate['id']): WorkspaceItem {
   const image = normalizeImage(item.image);
   return {
     id: item.id ?? image.id,
     image,
     exifData: buildExifForImage(image, language, item.exifData ?? defaultExifData),
+    styleId: resolveStyleId(item.styleId ?? fallbackStyleId),
   };
 }
 
@@ -174,6 +182,7 @@ export function getSessionItems(session: SessionItem, language: Language) {
       id: session.image.id,
       image: normalizeImage(session.image),
       exifData: buildExifForImage(normalizeImage(session.image), language, session.exifData ?? defaultExifData),
+      styleId: resolveStyleId(session.items?.[0]?.styleId),
     },
   ];
 }
@@ -214,7 +223,7 @@ export function createInitialState(): WorkspaceState {
     language: 'zh',
     theme: 'dark',
     previewMode: 'processed',
-    selectedStyleId: styleTemplates[0].id,
+    selectedStyleId: DEFAULT_STYLE_ID,
     workspaceItems: [],
     selectedImageId: '',
     currentCloudWorkspaceId: null,
@@ -250,11 +259,12 @@ export function createInitialState(): WorkspaceState {
     const language = parsed.language ?? baseState.language;
     const theme = parsed.theme ?? baseState.theme;
     const workspaceItems = parsed.workspaceItems?.length
-      ? parsed.workspaceItems.map((item) => normalizeWorkspaceItem(item, language))
+      ? parsed.workspaceItems.map((item) => normalizeWorkspaceItem(item, language, parsed.selectedStyleId))
       : [];
     const selectedImageId = workspaceItems.length
       ? (getActiveWorkspaceItem(workspaceItems, parsed.selectedImageId ?? workspaceItems[0]?.id ?? '')?.id ?? '')
       : '';
+    const selectedItem = getActiveWorkspaceItem(workspaceItems, selectedImageId);
 
     return {
       ...baseState,
@@ -262,14 +272,14 @@ export function createInitialState(): WorkspaceState {
       language,
       theme,
       previewMode: parsed.previewMode ?? baseState.previewMode,
-      selectedStyleId: parsed.selectedStyleId ?? baseState.selectedStyleId,
+      selectedStyleId: resolveStyleId(selectedItem?.styleId ?? parsed.selectedStyleId),
       workspaceItems,
       selectedImageId,
       currentCloudWorkspaceId: parsed.currentCloudWorkspaceId ?? null,
       exportSettings: {
         ...baseState.exportSettings,
         ...parsed.exportSettings,
-        fileName: parsed.exportSettings?.fileName ?? (workspaceItems.length ? getActiveWorkspaceItem(workspaceItems, selectedImageId)?.image.name : undefined) ?? baseState.exportSettings.fileName,
+        fileName: parsed.exportSettings?.fileName ?? selectedItem?.image.name ?? baseState.exportSettings.fileName,
       },
       recentSessions: baseState.recentSessions,
       exportHistory: parsed.exportHistory ? normalizeHistory(parsed.exportHistory) : baseState.exportHistory,
@@ -345,7 +355,18 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
     case 'set_preview_mode':
       return { ...state, previewMode: action.previewMode };
     case 'select_style':
-      return { ...state, selectedStyleId: action.styleId };
+      return {
+        ...state,
+        selectedStyleId: action.styleId,
+        workspaceItems: state.workspaceItems.map((item) =>
+          item.id === state.selectedImageId
+            ? {
+                ...item,
+                styleId: action.styleId,
+              }
+            : item,
+        ),
+      };
     case 'select_image': {
       const nextItem = getActiveWorkspaceItem(state.workspaceItems, action.imageId);
       if (!nextItem) {
@@ -355,6 +376,7 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
       return {
         ...state,
         selectedImageId: nextItem.id,
+        selectedStyleId: resolveStyleId(nextItem.styleId ?? state.selectedStyleId),
         exportSettings: {
           ...state.exportSettings,
           fileName: nextItem.image.name,
@@ -381,6 +403,7 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
         ...state,
         workspaceItems,
         selectedImageId: selectedItem?.id ?? workspaceItems[0]?.id ?? '',
+        selectedStyleId: resolveStyleId(selectedItem?.styleId ?? state.selectedStyleId),
         exportSettings: {
           ...state.exportSettings,
           fileName: selectedItem?.image.name ?? state.exportSettings.fileName,
@@ -470,6 +493,7 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
         ...state,
         workspaceItems,
         selectedImageId: selectedItem?.id ?? action.selectedImageId,
+        selectedStyleId: resolveStyleId(selectedItem?.styleId ?? state.selectedStyleId),
         exportSettings: {
           ...state.exportSettings,
           fileName: selectedItem?.image.name ?? state.exportSettings.fileName,
@@ -494,6 +518,7 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
         ...state,
         workspaceItems: sessionItems,
         selectedImageId: selectedItem?.id ?? sessionItems[0]?.id ?? '',
+        selectedStyleId: resolveStyleId(selectedItem?.styleId ?? state.selectedStyleId),
         exportSettings: {
           ...state.exportSettings,
           fileName: selectedItem?.image.name ?? state.exportSettings.fileName,
@@ -516,6 +541,7 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
         ...state,
         workspaceItems: sessionItems,
         selectedImageId: selectedItem?.id ?? sessionItems[0]?.id ?? '',
+        selectedStyleId: resolveStyleId(selectedItem?.styleId ?? state.selectedStyleId),
         exportSettings: {
           ...state.exportSettings,
           fileName: selectedItem?.image.name ?? state.exportSettings.fileName,

@@ -2,29 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import { ImagePlus } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { Dictionary } from '../../i18n/translations';
-import type { Language, SessionItem, Theme, UploadError, UploadStatus, WorkspaceImage } from '../../types/app';
+import type { Theme, UploadError, UploadStatus, WorkspaceImage } from '../../types/app';
 import { ACCEPTED_IMAGE_EXTENSIONS, ACCEPTED_IMAGE_TYPES } from '../../utils/image';
 import { MatrixMorphCanvas } from '../MatrixMorphCanvas';
 
 interface HomeViewProps {
   dict: Dictionary;
-  language: Language;
   theme: Theme;
-  sessions: SessionItem[];
-  cloudSessions: SessionItem[];
-  showCloudSessions: boolean;
   sourceImage?: WorkspaceImage | null;
   workspaceCount: number;
   uploadStatus: UploadStatus;
   uploadError: UploadError;
   onImportFiles: (files: File[]) => void | Promise<void>;
   onUploadStatusChange: (status: UploadStatus) => void;
-  onOpenSession: (sessionId: string) => void;
-  onOpenCloudSession: (session: SessionItem) => void | Promise<void>;
-  onDeleteCloudSession: (session: SessionItem) => void | Promise<void>;
-  deletingCloudWorkspaceId?: string | null;
   onContinueEditing: () => void;
-  onOpenSettings: () => void;
 }
 
 export function HomeView({
