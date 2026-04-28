@@ -120,7 +120,7 @@ export function getRenderedOverlaySize(styleTemplate: StyleTemplate, sourceWidth
       };
     }
     case 'white-footer-brand': {
-      const footerHeight = clamp(Math.round(sourceHeight * 0.17), 108, getScaledMax(176, layoutScale));
+      const footerHeight = clamp(Math.round(sourceHeight * 0.12), 76, getScaledMax(132, layoutScale));
       return {
         width: sourceWidth,
         height: sourceHeight + footerHeight,
