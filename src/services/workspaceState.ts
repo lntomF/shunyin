@@ -1,4 +1,4 @@
-import { defaultExifData, defaultExportSettings, demoImage, initialExportHistory, initialSessions, styleTemplates } from '../data/mockData';
+import { defaultExifData, defaultExportSettings, styleTemplates } from '../data/mockData';
 import type {
   ExifData,
   ExportHistoryItem,
@@ -8,6 +8,7 @@ import type {
   PreviewMode,
   SessionItem,
   StyleTemplate,
+  Theme,
   UploadError,
   UploadStatus,
   ViewType,
@@ -25,6 +26,7 @@ const MAX_EXPORTS = 12;
 export interface WorkspaceState {
   currentView: ViewType;
   language: Language;
+  theme: Theme;
   previewMode: PreviewMode;
   selectedStyleId: StyleTemplate['id'];
   workspaceItems: WorkspaceItem[];
@@ -42,6 +44,7 @@ export interface WorkspaceState {
 interface PersistedWorkspaceState {
   currentView?: ViewType;
   language?: Language;
+  theme?: Theme;
   previewMode?: PreviewMode;
   selectedStyleId?: StyleTemplate['id'];
   workspaceItems?: WorkspaceItem[];
@@ -57,6 +60,7 @@ interface PersistedWorkspaceState {
 export type WorkspaceAction =
   | { type: 'set_view'; view: ViewType }
   | { type: 'set_language'; language: Language }
+  | { type: 'set_theme'; theme: Theme }
   | { type: 'set_preview_mode'; previewMode: PreviewMode }
   | { type: 'select_style'; styleId: StyleTemplate['id'] }
   | { type: 'select_image'; imageId: string }
@@ -72,7 +76,6 @@ export type WorkspaceAction =
   | { type: 'load_session'; session: SessionItem }
   | { type: 'set_current_cloud_workspace'; workspaceId: string | null }
   | { type: 'hydrate_local_sources'; images: Array<{ id: string; objectUrl: string }> }
-  | { type: 'use_demo' }
   | { type: 'export_started' }
   | { type: 'export_succeeded'; historyItems: ExportHistoryItem[] }
   | { type: 'export_failed' };
@@ -87,13 +90,6 @@ export function normalizeImage(image: WorkspaceImage): WorkspaceImage {
 }
 
 export function buildExifForImage(image: WorkspaceImage, language: Language, exifOverrides: Partial<ExifData> = {}) {
-  if (image.source === 'demo') {
-    return {
-      ...defaultExifData,
-      ...exifOverrides,
-    };
-  }
-
   const width = image.width ?? 1600;
   const height = image.height ?? 1000;
   const fallbackExif = getLocalExifFallbacks(language);
@@ -147,7 +143,11 @@ export function getSessionItems(session: SessionItem, language: Language) {
 export function normalizeSessions(sessions: SessionItem[], language: Language) {
   return sessions.slice(0, MAX_SESSIONS).map((session, index) => {
     const items = getSessionItems(session, language);
-    const primaryItem = items[0] ?? createWorkspaceItem(demoImage, language, defaultExifData);
+    const primaryItem = items[0] ?? null;
+
+    if (!primaryItem) {
+      return session;
+    }
 
     return {
       ...session,
@@ -167,22 +167,22 @@ export function normalizeHistory(history: ExportHistoryItem[]) {
 }
 
 export function getActiveWorkspaceItem(workspaceItems: WorkspaceItem[], selectedImageId: string) {
-  return workspaceItems.find((item) => item.id === selectedImageId) ?? workspaceItems[0];
+  return workspaceItems.find((item) => item.id === selectedImageId) ?? workspaceItems[0] ?? null;
 }
 
 export function createInitialState(): WorkspaceState {
-  const demoItem = createWorkspaceItem(demoImage, 'zh', defaultExifData);
   const baseState: WorkspaceState = {
     currentView: 'import',
     language: 'zh',
+    theme: 'dark',
     previewMode: 'processed',
     selectedStyleId: styleTemplates[0].id,
-    workspaceItems: [demoItem],
-    selectedImageId: demoItem.id,
+    workspaceItems: [],
+    selectedImageId: '',
     currentCloudWorkspaceId: null,
     exportSettings: defaultExportSettings,
-    recentSessions: normalizeSessions(initialSessions, 'zh'),
-    exportHistory: normalizeHistory(initialExportHistory),
+    recentSessions: [],
+    exportHistory: [],
     uploadStatus: 'idle',
     exportStatus: 'idle',
     uploadError: null,
@@ -201,17 +201,19 @@ export function createInitialState(): WorkspaceState {
 
     const parsed = JSON.parse(raw) as PersistedWorkspaceState;
     const language = parsed.language ?? baseState.language;
+    const theme = parsed.theme ?? baseState.theme;
     const workspaceItems = parsed.workspaceItems?.length
       ? parsed.workspaceItems.map((item) => normalizeWorkspaceItem(item, language))
-      : parsed.sourceImage
-        ? [createWorkspaceItem(normalizeImage(parsed.sourceImage), language, parsed.exifData ?? defaultExifData)]
-        : baseState.workspaceItems;
-    const selectedImageId = getActiveWorkspaceItem(workspaceItems, parsed.selectedImageId ?? workspaceItems[0]?.id ?? demoItem.id)?.id ?? demoItem.id;
+      : [];
+    const selectedImageId = workspaceItems.length
+      ? (getActiveWorkspaceItem(workspaceItems, parsed.selectedImageId ?? workspaceItems[0]?.id ?? '')?.id ?? '')
+      : '';
 
     return {
       ...baseState,
       currentView: parsed.currentView ?? baseState.currentView,
       language,
+      theme,
       previewMode: parsed.previewMode ?? baseState.previewMode,
       selectedStyleId: parsed.selectedStyleId ?? baseState.selectedStyleId,
       workspaceItems,
@@ -220,9 +222,9 @@ export function createInitialState(): WorkspaceState {
       exportSettings: {
         ...baseState.exportSettings,
         ...parsed.exportSettings,
-        fileName: parsed.exportSettings?.fileName ?? getActiveWorkspaceItem(workspaceItems, selectedImageId)?.image.name ?? baseState.exportSettings.fileName,
+        fileName: parsed.exportSettings?.fileName ?? (workspaceItems.length ? getActiveWorkspaceItem(workspaceItems, selectedImageId)?.image.name : undefined) ?? baseState.exportSettings.fileName,
       },
-      recentSessions: parsed.recentSessions ? normalizeSessions(parsed.recentSessions, language) : baseState.recentSessions,
+      recentSessions: baseState.recentSessions,
       exportHistory: parsed.exportHistory ? normalizeHistory(parsed.exportHistory) : baseState.exportHistory,
       uploadStatus: workspaceItems.some((item) => item.image.source === 'local') ? 'ready' : baseState.uploadStatus,
       exportStatus: 'idle',
@@ -242,6 +244,7 @@ export function persistState(state: WorkspaceState) {
   const serializableState = {
     currentView: state.currentView,
     language: state.language,
+    theme: state.theme,
     previewMode: state.previewMode,
     selectedStyleId: state.selectedStyleId,
     workspaceItems: state.workspaceItems.map((item) => ({
@@ -289,6 +292,8 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
           };
         }),
       };
+    case 'set_theme':
+      return { ...state, theme: action.theme };
     case 'set_preview_mode':
       return { ...state, previewMode: action.previewMode };
     case 'select_style':
@@ -311,18 +316,23 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
     case 'remove_image': {
       const workspaceItems = state.workspaceItems.filter((item) => item.id !== action.imageId);
       if (!workspaceItems.length) {
-        return state;
+        return {
+          ...state,
+          workspaceItems: [],
+          selectedImageId: '',
+          currentView: 'import',
+        };
       }
 
       const selectedItem = getActiveWorkspaceItem(
         workspaceItems,
-        state.selectedImageId === action.imageId ? workspaceItems[0]?.id ?? demoImage.id : state.selectedImageId,
+        state.selectedImageId === action.imageId ? workspaceItems[0]?.id ?? '' : state.selectedImageId,
       );
 
       return {
         ...state,
         workspaceItems,
-        selectedImageId: selectedItem?.id ?? demoImage.id,
+        selectedImageId: selectedItem?.id ?? workspaceItems[0]?.id ?? '',
         exportSettings: {
           ...state.exportSettings,
           fileName: selectedItem?.image.name ?? state.exportSettings.fileName,
@@ -428,11 +438,14 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
     }
     case 'open_session': {
       const sessionItems = getSessionItems(action.session, state.language);
-      const selectedItem = getActiveWorkspaceItem(sessionItems, action.session.activeImageId ?? sessionItems[0]?.id ?? demoImage.id);
+      const selectedItem = getActiveWorkspaceItem(sessionItems, action.session.activeImageId ?? sessionItems[0]?.id ?? '');
+      if (!sessionItems.length) {
+        return state;
+      }
       return {
         ...state,
         workspaceItems: sessionItems,
-        selectedImageId: selectedItem?.id ?? demoImage.id,
+        selectedImageId: selectedItem?.id ?? sessionItems[0]?.id ?? '',
         exportSettings: {
           ...state.exportSettings,
           fileName: selectedItem?.image.name ?? state.exportSettings.fileName,
@@ -447,11 +460,14 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
     }
     case 'load_session': {
       const sessionItems = getSessionItems(action.session, state.language);
-      const selectedItem = getActiveWorkspaceItem(sessionItems, action.session.activeImageId ?? sessionItems[0]?.id ?? demoImage.id);
+      const selectedItem = getActiveWorkspaceItem(sessionItems, action.session.activeImageId ?? sessionItems[0]?.id ?? '');
+      if (!sessionItems.length) {
+        return state;
+      }
       return {
         ...state,
         workspaceItems: sessionItems,
-        selectedImageId: selectedItem?.id ?? demoImage.id,
+        selectedImageId: selectedItem?.id ?? sessionItems[0]?.id ?? '',
         exportSettings: {
           ...state.exportSettings,
           fileName: selectedItem?.image.name ?? state.exportSettings.fileName,
@@ -460,21 +476,6 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
         currentView: 'editor',
         previewMode: 'processed',
         uploadStatus: selectedItem?.image.source === 'local' ? 'ready' : 'idle',
-        uploadError: null,
-        notice: null,
-      };
-    }
-    case 'use_demo': {
-      const demoItem = createWorkspaceItem(demoImage, state.language, defaultExifData);
-      return {
-        ...state,
-        workspaceItems: [demoItem],
-        selectedImageId: demoItem.id,
-        currentCloudWorkspaceId: null,
-        exportSettings: defaultExportSettings,
-        currentView: 'editor',
-        previewMode: 'processed',
-        uploadStatus: 'idle',
         uploadError: null,
         notice: null,
       };

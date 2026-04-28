@@ -231,14 +231,14 @@ export function SettingsPanel({
   const cloudActionDisabled = !cloudEnabled || authStatus !== 'authenticated' || cloudStatus === 'loading' || cloudStatus === 'saving';
   const statusMessage = errorMessage ?? successMessage ?? cloudMessage;
   const statusToneClass = errorMessage || cloudStatus === 'error'
-    ? 'border-[#7f3f3f]/40 bg-[#26171c] text-[#f0b5b5]'
+    ? 'border-red-500/30 bg-red-500/10 text-red-500'
     : 'border-secondary/15 bg-secondary/10 text-secondary';
 
   return (
     <>
       {open && (
-        <div className="fixed inset-0 z-[65] flex items-center justify-center bg-[#02060f]/78 px-4 backdrop-blur-md">
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-secondary/15 bg-surface-container-lowest/90 shadow-[0_30px_100px_rgba(0,0,0,0.55)]">
+        <div className="fixed inset-0 z-[65] flex items-center justify-center bg-surface-container-lowest/70 px-4 backdrop-blur-md">
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-secondary/15 bg-surface-container-lowest/90 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
             <div className="console-grid absolute inset-0 opacity-20" />
             <div className="pointer-events-none absolute -left-10 top-10 h-44 w-44 rounded-full bg-secondary/12 blur-3xl" />
             <div className="pointer-events-none absolute bottom-0 right-0 h-52 w-52 rounded-full bg-tertiary/10 blur-3xl" />
@@ -300,9 +300,9 @@ export function SettingsPanel({
                         <div className="mt-3 flex items-center gap-3 text-sm text-on-surface">
                           <span className={`h-2.5 w-2.5 rounded-full ${
                             cloudStatus === 'saved'
-                              ? 'bg-tertiary shadow-[0_0_12px_rgba(110,231,200,0.7)]'
+                              ? 'bg-tertiary'
                               : cloudStatus === 'saving'
-                                ? 'bg-secondary shadow-[0_0_12px_rgba(121,216,255,0.7)]'
+                                ? 'bg-secondary'
                                 : 'bg-outline'
                           }`}
                           />
@@ -316,7 +316,7 @@ export function SettingsPanel({
                         type="button"
                         onClick={handleSaveCloud}
                         disabled={cloudActionDisabled}
-                        className="group flex items-center justify-between rounded-[1.3rem] border border-secondary/20 bg-primary px-4 py-4 text-sm font-headline font-bold uppercase tracking-[0.18em] text-surface shadow-[0_12px_30px_rgba(121,216,255,0.18)] shutter-transition hover:bg-white disabled:cursor-wait disabled:opacity-60"
+                        className="group flex items-center justify-between rounded-[1.3rem] border border-secondary/20 bg-primary px-4 py-4 text-sm font-headline font-bold uppercase tracking-[0.18em] text-surface shadow-md shutter-transition hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
                       >
                         <span>{cloudButtonLabel}</span>
                         {cloudStatus === 'saving'
@@ -353,7 +353,7 @@ export function SettingsPanel({
                       <button
                         type="button"
                         onClick={() => openDialog('sign_up')}
-                        className="rounded-[1.3rem] border border-secondary/20 bg-primary px-4 py-4 text-sm font-headline font-bold uppercase tracking-[0.18em] text-surface shadow-[0_12px_30px_rgba(121,216,255,0.18)] shutter-transition hover:bg-white"
+                        className="rounded-[1.3rem] border border-secondary/20 bg-primary px-4 py-4 text-sm font-headline font-bold uppercase tracking-[0.18em] text-surface shadow-md shutter-transition hover:opacity-90"
                       >
                         {dict.signUpLabel}
                       </button>

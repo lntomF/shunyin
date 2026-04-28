@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { FolderOpen, ImagePlus } from 'lucide-react';
+import { ImagePlus } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { Dictionary } from '../../i18n/translations';
-import type { Language, SessionItem, UploadError, UploadStatus, WorkspaceImage } from '../../types/app';
-import { ACCEPTED_IMAGE_TYPES } from '../../utils/image';
+import type { Language, SessionItem, Theme, UploadError, UploadStatus, WorkspaceImage } from '../../types/app';
+import { ACCEPTED_IMAGE_EXTENSIONS, ACCEPTED_IMAGE_TYPES } from '../../utils/image';
 import { MatrixMorphCanvas } from '../MatrixMorphCanvas';
 
 interface HomeViewProps {
   dict: Dictionary;
   language: Language;
+  theme: Theme;
   sessions: SessionItem[];
   cloudSessions: SessionItem[];
   showCloudSessions: boolean;
-  sourceImage: WorkspaceImage;
+  sourceImage?: WorkspaceImage | null;
   workspaceCount: number;
   uploadStatus: UploadStatus;
   uploadError: UploadError;
@@ -23,21 +24,23 @@ interface HomeViewProps {
   onDeleteCloudSession: (session: SessionItem) => void | Promise<void>;
   deletingCloudWorkspaceId?: string | null;
   onContinueEditing: () => void;
-  onUseDemo: () => void;
   onOpenSettings: () => void;
 }
 
 export function HomeView({
   dict,
+  theme,
   sourceImage,
   workspaceCount,
+  uploadStatus,
+  uploadError,
   onImportFiles,
   onUploadStatusChange,
   onContinueEditing,
-  onUseDemo,
 }: HomeViewProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const imageSrc = sourceImage.objectUrl ?? sourceImage.src;
+  const inputId = 'shunyin-photo-import';
+  const imageSrc = sourceImage?.objectUrl ?? sourceImage?.src;
   const headingLine1Chars = Array.from(dict.homeHeadingLine1);
   const headingLine2Chars = Array.from(dict.homeHeadingLine2);
   const [typedLine1Length, setTypedLine1Length] = useState(0);
@@ -46,9 +49,14 @@ export function HomeView({
 
   const handleFiles = (files: FileList | File[] | null | undefined) => {
     const nextFiles = Array.from(files ?? []);
-    if (!nextFiles.length) return;
+    if (!nextFiles.length) {
+      return;
+    }
+
     onImportFiles(nextFiles);
-    if (inputRef.current) inputRef.current.value = '';
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
   };
 
   // 全页面拖拽支持
@@ -59,12 +67,12 @@ export function HomeView({
     };
     const onDragLeave = (e: DragEvent) => {
       if (e.relatedTarget === null) {
-        onUploadStatusChange(sourceImage.source === 'local' ? 'ready' : 'idle');
+        onUploadStatusChange(sourceImage?.source === 'local' ? 'ready' : 'idle');
       }
     };
     const onDrop = (e: DragEvent) => {
       e.preventDefault();
-      onUploadStatusChange(sourceImage.source === 'local' ? 'ready' : 'idle');
+      onUploadStatusChange(sourceImage?.source === 'local' ? 'ready' : 'idle');
       handleFiles(e.dataTransfer?.files);
     };
 
@@ -76,7 +84,7 @@ export function HomeView({
       document.removeEventListener('dragleave', onDragLeave);
       document.removeEventListener('drop', onDrop);
     };
-  }, [sourceImage.source]);
+  }, [sourceImage?.source]);
 
   useEffect(() => {
     setTypedLine1Length(0);
@@ -143,6 +151,17 @@ export function HomeView({
   const typedLine2 = headingLine2Chars.slice(0, typedLine2Length).join('');
   const isFirstLineActive = typingPhase === 'typing-line-1' || typingPhase === 'deleting-line-1';
   const isSecondLineActive = typingPhase === 'typing-line-2' || typingPhase === 'pause' || typingPhase === 'deleting-line-2';
+  const uploadMessage = uploadError === 'invalid_type'
+    ? dict.importInvalidType
+    : uploadError === 'file_too_large'
+      ? dict.importFileTooLarge
+      : uploadError === 'import_failed'
+        ? dict.importFailed
+        : uploadStatus === 'loading'
+          ? dict.importLoading
+          : uploadStatus === 'dragging'
+            ? dict.dropActive
+            : null;
 
   return (
     <motion.div
@@ -153,21 +172,22 @@ export function HomeView({
       className="mx-auto max-w-7xl px-6 pb-40 pt-28 lg:px-12"
     >
       <input
+        id={inputId}
         ref={inputRef}
         type="file"
-        accept={ACCEPTED_IMAGE_TYPES.join(',')}
+        accept={[...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_IMAGE_EXTENSIONS].join(',')}
         multiple
-        className="hidden"
+        className="sr-only"
         onChange={(event) => handleFiles(event.target.files)}
       />
 
       {/* ── Hero Banner ───────────────────────────────────────── */}
-      <section className="relative overflow-hidden rounded-[2rem] border border-secondary/10 bg-[radial-gradient(circle_at_top_left,rgba(121,216,255,0.08),transparent_28%),linear-gradient(180deg,rgba(8,16,30,0.94),rgba(5,10,20,0.9))] text-center shadow-[0_28px_80px_rgba(2,7,18,0.42)]">
+      <section className="hero-section relative overflow-hidden rounded-[2rem] border border-secondary/10 text-center shadow-[0_28px_80px_rgba(2,7,18,0.42)]">
         <div className="pointer-events-none absolute inset-0">
-          <MatrixMorphCanvas imageSrc={imageSrc} variant="hero" />
+          <MatrixMorphCanvas imageSrc={imageSrc} variant="hero" theme={theme} />
         </div>
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(121,216,255,0.12),transparent_24%),radial-gradient(circle_at_80%_62%,rgba(110,231,200,0.08),transparent_22%)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,16,29,0.16),rgba(7,16,29,0.28)_34%,rgba(7,16,29,0.72))]" />
+        <div className="pointer-events-none absolute inset-0 hero-overlay-accent" />
+        <div className="pointer-events-none absolute inset-0 hero-overlay-gradient" />
 
         <div className="relative px-6 py-16 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
           <span className="mb-8 inline-flex items-center rounded-full border border-secondary/20 bg-secondary/10 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.3em] text-secondary">
@@ -200,22 +220,27 @@ export function HomeView({
           </p>
 
           <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              className="group flex items-center gap-3 rounded-[1.35rem] border border-secondary/25 bg-primary px-7 py-4 text-surface shadow-[0_12px_32px_rgba(121,216,255,0.18)] shutter-transition hover:-translate-y-0.5 hover:bg-white active:scale-[0.98]"
+            <label
+              htmlFor={inputId}
+              className="group flex cursor-pointer items-center gap-3 rounded-[1.35rem] border border-secondary/25 bg-primary px-7 py-4 text-surface shadow-md shutter-transition hover:-translate-y-0.5 hover:opacity-90 active:scale-[0.98]"
             >
               <ImagePlus size={18} className="group-hover:translate-x-0.5 shutter-transition" />
               <span className="font-headline text-sm font-bold uppercase tracking-widest">{dict.btnImport}</span>
-            </button>
-            <button
-              type="button"
-              onClick={onUseDemo}
-              className="console-panel flex items-center gap-3 rounded-[1.35rem] px-7 py-4 text-primary shutter-transition hover:-translate-y-0.5 hover:border-secondary/30"
-            >
-              <FolderOpen size={18} />
-              <span className="font-headline text-sm font-bold uppercase tracking-widest">{dict.useDemo}</span>
-            </button>
+            </label>
+
+            {workspaceCount > 0 && (
+              <button
+                type="button"
+                onClick={onContinueEditing}
+                className="console-panel rounded-[1.35rem] px-7 py-4 text-sm font-headline font-bold uppercase tracking-widest text-primary shutter-transition hover:-translate-y-0.5 hover:border-secondary/30 hover:text-secondary active:scale-[0.98]"
+              >
+                {dict.resumeEditing}
+              </button>
+            )}
+          </div>
+
+          <div className="mt-5 min-h-6 text-sm font-medium text-on-surface-variant">
+            {uploadMessage ?? dict.importFormats}
           </div>
         </div>
       </section>

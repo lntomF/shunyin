@@ -2,8 +2,9 @@ import { parse as parseExif } from 'exifr';
 import type { ExifData, Language, WorkspaceImage } from '../types/app';
 import { deriveBaseName, formatBytes, formatResolution } from './format';
 
-export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-export const MAX_FILE_SIZE = 20 * 1024 * 1024;
+export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+export const ACCEPTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
+export const MAX_FILE_SIZE = 80 * 1024 * 1024;
 
 interface ImportedImagePayload {
   image: WorkspaceImage;
@@ -35,6 +36,16 @@ interface ParsedExifTags {
 }
 
 type ExifSource = File | Blob;
+
+export function isAcceptedImageFile(file: File) {
+  const normalizedType = file.type.toLowerCase();
+  if (ACCEPTED_IMAGE_TYPES.includes(normalizedType)) {
+    return true;
+  }
+
+  const normalizedName = file.name.toLowerCase();
+  return ACCEPTED_IMAGE_EXTENSIONS.some((extension) => normalizedName.endsWith(extension));
+}
 
 export async function loadImageElement(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -258,7 +269,11 @@ async function parseExifOverrides(source: ExifSource): Promise<Partial<ExifData>
 }
 
 async function readExifOverrides(file: File): Promise<Partial<ExifData>> {
-  return parseExifOverrides(file);
+  try {
+    return await parseExifOverrides(file);
+  } catch {
+    return {};
+  }
 }
 
 const dataUrlCache = new Map<string, Promise<string>>();

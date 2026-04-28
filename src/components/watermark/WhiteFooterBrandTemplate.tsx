@@ -20,24 +20,24 @@ export function WhiteFooterBrandTemplate({
   const sourceHeight = Math.max(image.height ?? height, 1);
   const layoutScale = getWatermarkLayoutScale(sourceWidth, sourceHeight);
   const scaledMax = (value: number) => Math.round(value * layoutScale);
-  const footerHeight = Math.max(height - sourceHeight, clamp(Math.round(sourceHeight * 0.17), 108, scaledMax(176)));
+  const footerHeight = Math.max(height - sourceHeight, clamp(Math.round(sourceHeight * 0.12), 76, scaledMax(132)));
   const photoHeight = height - footerHeight;
-  const paddingX = clamp(Math.round(width * 0.045), 28, scaledMax(64));
+  const paddingX = clamp(Math.round(width * 0.04), 22, scaledMax(52));
   const topLineY = photoHeight - 1.5;
   const dividerOneX = width * 0.315;
   const dividerTwoX = width * 0.735;
-  const dividerTop = photoHeight + footerHeight * 0.2;
-  const dividerHeight = footerHeight * 0.58;
-  const brandFontSize = clamp(Math.round(width * 0.072), 54, scaledMax(108));
-  const leftTitleSize = clamp(Math.round(width * 0.0185), 18, scaledMax(30));
-  const leftMetaSize = clamp(Math.round(width * 0.0108), 11, scaledMax(16));
-  const rightMainSize = clamp(Math.round(width * 0.015), 16, scaledMax(24));
-  const rightSubSize = clamp(Math.round(width * 0.0102), 10, scaledMax(15));
-  const leftBlockY = photoHeight + footerHeight * 0.42;
-  const brandY = photoHeight + footerHeight * 0.6;
-  const rightBlockY = photoHeight + footerHeight * 0.41;
-  const leftMetaY = leftBlockY + leftMetaSize + 16;
-  const rightSubY = rightBlockY + rightSubSize + 15;
+  const dividerTop = photoHeight + footerHeight * 0.24;
+  const dividerHeight = footerHeight * 0.52;
+  const brandFontSize = clamp(Math.round(width * 0.048), 34, scaledMax(72));
+  const leftTitleSize = clamp(Math.round(width * 0.014), 13, scaledMax(22));
+  const leftMetaSize = clamp(Math.round(width * 0.0088), 9, scaledMax(13));
+  const rightMainSize = clamp(Math.round(width * 0.012), 12, scaledMax(19));
+  const rightSubSize = clamp(Math.round(width * 0.0085), 8, scaledMax(12));
+  const leftBlockY = photoHeight + footerHeight * 0.4;
+  const brandY = photoHeight + footerHeight * 0.58;
+  const rightBlockY = photoHeight + footerHeight * 0.4;
+  const leftMetaY = leftBlockY + leftMetaSize + clamp(Math.round(footerHeight * 0.1), 7, scaledMax(12));
+  const rightSubY = rightBlockY + rightSubSize + clamp(Math.round(footerHeight * 0.1), 7, scaledMax(12));
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} fill="none" xmlns="http://www.w3.org/2000/svg">

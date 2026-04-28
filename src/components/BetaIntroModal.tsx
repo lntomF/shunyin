@@ -17,7 +17,7 @@ export function BetaIntroModal({ dict, open, onAcknowledge }: BetaIntroModalProp
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-[#02060f]/78 px-4 backdrop-blur-md"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-surface-container-lowest/75 px-4 backdrop-blur-md"
         >
           <motion.div
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
@@ -48,7 +48,7 @@ export function BetaIntroModal({ dict, open, onAcknowledge }: BetaIntroModalProp
                 <button
                   type="button"
                   onClick={onAcknowledge}
-                  className="group inline-flex items-center gap-3 rounded-[1.2rem] border border-secondary/20 bg-primary px-5 py-3 text-sm font-headline font-bold uppercase tracking-[0.18em] text-surface shadow-[0_12px_32px_rgba(121,216,255,0.16)] shutter-transition hover:bg-white"
+                  className="group inline-flex items-center gap-3 rounded-[1.2rem] border border-secondary/20 bg-primary px-5 py-3 text-sm font-headline font-bold uppercase tracking-[0.18em] text-surface shadow-md shutter-transition hover:opacity-90"
                 >
                   <span>{dict.betaIntroModalConfirm}</span>
                   <ArrowRight size={16} className="shutter-transition group-hover:translate-x-0.5" />

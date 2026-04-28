@@ -178,7 +178,7 @@ export function EditorView({
                     onClick={() => onSelectStyle(template.id)}
                     className={`w-full rounded-[1rem] border p-3 text-left shutter-transition ${
                       isSelected
-                        ? 'border-secondary/25 bg-secondary/10 shadow-[0_8px_20px_rgba(121,216,255,0.08)]'
+                        ? 'border-secondary/25 bg-secondary/10 shadow-sm'
                         : 'border-outline-variant/15 bg-surface/62 hover:border-secondary/20 hover:bg-surface/72'
                     }`}
                   >
@@ -201,7 +201,7 @@ export function EditorView({
           <button
             type="button"
             onClick={onApply}
-            className="w-full rounded-[1.2rem] border border-secondary/20 bg-primary py-3.5 text-sm font-headline font-bold uppercase tracking-[0.2em] text-surface shadow-[0_14px_32px_rgba(121,216,255,0.18)] shutter-transition hover:bg-white active:scale-[0.99]"
+            className="w-full rounded-[1.2rem] border border-secondary/20 bg-primary py-3.5 text-sm font-headline font-bold uppercase tracking-[0.2em] text-surface shadow-md shutter-transition hover:opacity-90 active:scale-[0.99]"
           >
             {dict.applyBtn}
           </button>

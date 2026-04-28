@@ -44,7 +44,7 @@ export function WorkspaceStrip({
                 isVertical ? 'w-full shrink-0' : 'w-[92px] shrink-0 sm:w-[104px] md:w-[112px]'
               } ${
                 isSelected
-                  ? 'border-secondary/40 bg-surface/85 shadow-[0_12px_28px_rgba(121,216,255,0.12)]'
+                  ? 'border-secondary/40 bg-surface/85 shadow-sm'
                   : 'border-outline-variant/15 bg-surface-container-lowest/75 hover:border-secondary/25 hover:bg-surface/80'
               }`}
             >
@@ -71,7 +71,7 @@ export function WorkspaceStrip({
                   type="button"
                   onClick={() => onDeleteItem(item.id)}
                   disabled={deletingImageId === item.id}
-                  className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-black/45 text-primary backdrop-blur-sm transition-colors hover:border-secondary/25 hover:bg-black/65 disabled:cursor-wait disabled:opacity-60"
+                  className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border border-outline-variant/20 bg-surface-container-high/80 text-primary backdrop-blur-sm transition-colors hover:border-secondary/25 hover:bg-surface-container-highest disabled:cursor-wait disabled:opacity-60"
                   aria-label={deleteLabel}
                 >
                   <Trash2 size={11} />

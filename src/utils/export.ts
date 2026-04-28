@@ -14,8 +14,12 @@ interface ExportRenderedImageOptions {
 }
 
 function mapQuality(quality: ExportSettings['quality']) {
-  if (quality === 'web' || quality === 'standard' || quality === 'max') {
-    return 1;
+  if (quality === 'web') {
+    return 0.82;
+  }
+
+  if (quality === 'standard') {
+    return 0.92;
   }
 
   return 1;

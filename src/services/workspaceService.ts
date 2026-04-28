@@ -1,4 +1,4 @@
-import { defaultExifData, demoImage } from '../data/mockData';
+import { defaultExifData } from '../data/mockData';
 import type {
   ExportHistoryItem,
   ExportSettings,
@@ -9,7 +9,7 @@ import type {
   WorkspaceItem,
 } from '../types/app';
 import { exportRenderedImage } from '../utils/export';
-import { ACCEPTED_IMAGE_TYPES, MAX_FILE_SIZE, importImageFile } from '../utils/image';
+import { MAX_FILE_SIZE, importImageFile, isAcceptedImageFile } from '../utils/image';
 import { saveLocalImageBlob } from '../utils/localImageStore';
 import { createWorkspaceItem, normalizeImage } from './workspaceState';
 
@@ -37,7 +37,7 @@ interface ExportWorkspaceBatchOptions {
 }
 
 export function validateImportFiles(files: File[]): UploadError {
-  if (files.some((file) => !ACCEPTED_IMAGE_TYPES.includes(file.type))) {
+  if (files.some((file) => !isAcceptedImageFile(file))) {
     return 'invalid_type';
   }
 
@@ -54,15 +54,24 @@ export async function importWorkspaceFiles(files: File[], language: Language): P
 
   for (const file of files) {
     const objectUrl = URL.createObjectURL(file);
-    const imported = await importImageFile(file, objectUrl, language);
-    const item = createWorkspaceItem(imported.image, language, imported.exifOverrides);
 
-    importedItems.push(item);
-    createdObjectUrls.push({ id: item.id, url: objectUrl });
+    try {
+      const imported = await importImageFile(file, objectUrl, language);
+      const item = createWorkspaceItem(imported.image, language, imported.exifOverrides);
 
-    await saveLocalImageBlob(item.id, file).catch(() => {
-      // Ignore IndexedDB failures and keep the current session usable in memory.
-    });
+      importedItems.push(item);
+      createdObjectUrls.push({ id: item.id, url: objectUrl });
+
+      await saveLocalImageBlob(item.id, file).catch(() => {
+        // Ignore IndexedDB failures and keep the current session usable in memory.
+      });
+    } catch {
+      URL.revokeObjectURL(objectUrl);
+    }
+  }
+
+  if (!importedItems.length) {
+    throw new Error('No supported images could be imported.');
   }
 
   const firstItem = importedItems[0];
@@ -74,7 +83,7 @@ export async function importWorkspaceFiles(files: File[], language: Language): P
     session: {
       id: `session-${Date.now()}`,
       title: batchTitle,
-      coverSrc: firstItem?.image.persistedSrc ?? firstItem?.image.src ?? demoImage.src,
+      coverSrc: firstItem?.image.persistedSrc ?? firstItem?.image.src ?? '',
       updatedAt: firstItem?.image.createdAt ?? new Date().toISOString(),
       itemCount: importedItems.length,
       source: 'local',
@@ -83,7 +92,7 @@ export async function importWorkspaceFiles(files: File[], language: Language): P
         ...item,
         image: normalizeImage(item.image),
       })),
-      image: normalizeImage(firstItem?.image ?? demoImage),
+      image: firstItem ? normalizeImage(firstItem.image) : normalizeImage(importedItems[0].image),
       exifData: firstItem?.exifData ?? defaultExifData,
     },
   };
