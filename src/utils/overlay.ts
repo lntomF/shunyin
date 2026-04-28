@@ -1,5 +1,8 @@
 import { createElement, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { FilmBorderTemplate } from '../components/watermark/FilmBorderTemplate';
+import { MagazineCoverTemplate } from '../components/watermark/MagazineCoverTemplate';
+import { MinimalWhiteFooterTemplate } from '../components/watermark/MinimalWhiteFooterTemplate';
 import { PortraitGalleryCardTemplate } from '../components/watermark/PortraitGalleryCardTemplate';
 import { WhiteFooterBrandTemplate } from '../components/watermark/WhiteFooterBrandTemplate';
 import type { WatermarkSvgProps } from '../components/watermark/types';
@@ -22,6 +25,9 @@ interface RenderedSize {
 }
 
 const WATERMARK_RENDERERS: Record<StyleTemplate['styleType'], (props: WatermarkSvgProps) => ReactElement> = {
+  'minimal-white-footer': MinimalWhiteFooterTemplate,
+  'magazine-cover': MagazineCoverTemplate,
+  'film-border': FilmBorderTemplate,
   'portrait-gallery-card': PortraitGalleryCardTemplate,
   'white-footer-brand': WhiteFooterBrandTemplate,
 };
@@ -108,6 +114,29 @@ export function getRenderedOverlaySize(styleTemplate: StyleTemplate, sourceWidth
   const layoutScale = getWatermarkLayoutScale(sourceWidth, sourceHeight);
 
   switch (styleTemplate.styleType) {
+    case 'minimal-white-footer': {
+      const footerHeight = clamp(Math.round(sourceHeight * 0.135), 88, getScaledMax(158, layoutScale));
+      return {
+        width: sourceWidth,
+        height: sourceHeight + footerHeight,
+      };
+    }
+    case 'magazine-cover':
+      return {
+        width: sourceWidth,
+        height: sourceHeight,
+      };
+    case 'film-border': {
+      const minEdge = Math.min(sourceWidth, sourceHeight);
+      const sidePadding = clamp(Math.round(minEdge * 0.07), 46, getScaledMax(108, layoutScale));
+      const topPadding = clamp(Math.round(minEdge * 0.055), 34, getScaledMax(88, layoutScale));
+      const bottomPadding = clamp(Math.round(minEdge * 0.16), 96, getScaledMax(210, layoutScale));
+
+      return {
+        width: sourceWidth + sidePadding * 2,
+        height: sourceHeight + topPadding + bottomPadding,
+      };
+    }
     case 'portrait-gallery-card': {
       const minEdge = Math.min(sourceWidth, sourceHeight);
       const sidePadding = clamp(Math.round(minEdge * 0.12), 44, getScaledMax(140, layoutScale));
