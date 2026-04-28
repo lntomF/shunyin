@@ -21,6 +21,7 @@ export type WorkspaceNotice = 'import_ready' | 'export_done' | 'export_failed' |
 
 export interface ExifData {
   cameraBody: string;
+  watermarkTitle?: string;
   lens: string;
   aperture: string;
   shutter: string;
@@ -66,6 +67,7 @@ export interface WorkspaceItem {
   id: string;
   image: WorkspaceImage;
   exifData: ExifData;
+  styleId?: StyleTemplate['id'];
 }
 
 export interface SessionItem {

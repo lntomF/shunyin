@@ -13,14 +13,18 @@ export function WhiteFooterBrandTemplate({
   cameraTitle,
   brandLabel,
   captureTimeText,
+  lensModel,
   parameterLine,
-  exifData,
 }: WatermarkSvgProps) {
   const sourceWidth = Math.max(image.width ?? width, 1);
   const sourceHeight = Math.max(image.height ?? height, 1);
   const layoutScale = getWatermarkLayoutScale(sourceWidth, sourceHeight);
   const scaledMax = (value: number) => Math.round(value * layoutScale);
-  const footerHeight = Math.max(height - sourceHeight, clamp(Math.round(sourceHeight * 0.12), 76, scaledMax(132)));
+  const isPortrait = sourceHeight > sourceWidth * 1.12;
+  const footerHeight = Math.max(
+    height - sourceHeight,
+    clamp(Math.round(isPortrait ? sourceWidth * 0.16 : sourceHeight * 0.12), isPortrait ? 104 : 76, scaledMax(isPortrait ? 210 : 132)),
+  );
   const photoHeight = height - footerHeight;
   const paddingX = clamp(Math.round(width * 0.04), 22, scaledMax(52));
   const topLineY = photoHeight - 1.5;
@@ -28,11 +32,21 @@ export function WhiteFooterBrandTemplate({
   const dividerTwoX = width * 0.735;
   const dividerTop = photoHeight + footerHeight * 0.24;
   const dividerHeight = footerHeight * 0.52;
-  const brandFontSize = clamp(Math.round(width * 0.048), 34, scaledMax(72));
-  const leftTitleSize = clamp(Math.round(width * 0.014), 13, scaledMax(22));
-  const leftMetaSize = clamp(Math.round(width * 0.0088), 9, scaledMax(13));
-  const rightMainSize = clamp(Math.round(width * 0.012), 12, scaledMax(19));
-  const rightSubSize = clamp(Math.round(width * 0.0085), 8, scaledMax(12));
+  const brandFontSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.04), 66, scaledMax(170))
+    : clamp(Math.round(width * 0.048), 34, scaledMax(72));
+  const leftTitleSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.017), 28, scaledMax(72))
+    : clamp(Math.round(width * 0.014), 13, scaledMax(22));
+  const leftMetaSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.012), 20, scaledMax(50))
+    : clamp(Math.round(width * 0.0088), 9, scaledMax(13));
+  const rightMainSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.014), 24, scaledMax(60))
+    : clamp(Math.round(width * 0.012), 12, scaledMax(19));
+  const rightSubSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.011), 18, scaledMax(46))
+    : clamp(Math.round(width * 0.0085), 8, scaledMax(12));
   const leftBlockY = photoHeight + footerHeight * 0.4;
   const brandY = photoHeight + footerHeight * 0.58;
   const rightBlockY = photoHeight + footerHeight * 0.4;
@@ -58,16 +72,18 @@ export function WhiteFooterBrandTemplate({
       >
         {cameraTitle}
       </text>
-      <text
-        x={paddingX}
-        y={leftMetaY}
-        fill="#8B8B8B"
-        fontSize={leftMetaSize}
-        fontFamily="Inter, Arial, sans-serif"
-        fontWeight="500"
-      >
-        {exifData.lens}
-      </text>
+      {lensModel && (
+        <text
+          x={paddingX}
+          y={leftMetaY}
+          fill="#8B8B8B"
+          fontSize={leftMetaSize}
+          fontFamily="Inter, Arial, sans-serif"
+          fontWeight="500"
+        >
+          {lensModel}
+        </text>
+      )}
 
       <text
         x={width * 0.53}

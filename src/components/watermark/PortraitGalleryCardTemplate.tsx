@@ -5,11 +5,6 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function compactValue(value: string) {
-  const trimmed = value.trim();
-  return trimmed && trimmed !== '--' ? trimmed : undefined;
-}
-
 function truncateText(value: string, maxLength: number) {
   if (value.length <= maxLength) {
     return value;
@@ -23,8 +18,8 @@ export function PortraitGalleryCardTemplate({
   height,
   image,
   imageHref,
-  exifData,
   cameraTitle,
+  lensModel,
   parameterLine,
 }: WatermarkSvgProps) {
   const sourceWidth = Math.max(image.width ?? width, 1);
@@ -32,16 +27,26 @@ export function PortraitGalleryCardTemplate({
   const minEdge = Math.min(sourceWidth, sourceHeight);
   const layoutScale = getWatermarkLayoutScale(sourceWidth, sourceHeight);
   const scaledMax = (value: number) => Math.round(value * layoutScale);
+  const isPortrait = sourceHeight > sourceWidth * 1.12;
   const sidePadding = clamp(Math.round(minEdge * 0.12), 44, scaledMax(140));
   const topPadding = clamp(Math.round(minEdge * 0.08), 28, scaledMax(96));
-  const footerHeight = Math.max(height - sourceHeight - topPadding, clamp(Math.round(minEdge * 0.22), 118, scaledMax(240)));
+  const footerHeight = Math.max(
+    height - sourceHeight - topPadding,
+    clamp(Math.round(minEdge * (isPortrait ? 0.24 : 0.22)), isPortrait ? 132 : 118, scaledMax(isPortrait ? 270 : 240)),
+  );
   const imageX = (width - sourceWidth) / 2;
   const imageY = topPadding;
   const imageBottom = imageY + sourceHeight;
   const imageRadius = clamp(Math.round(minEdge * 0.055), 24, scaledMax(40));
-  const titleFontSize = clamp(Math.round(sourceWidth * 0.054), 30, scaledMax(50));
-  const parameterFontSize = clamp(Math.round(sourceWidth * 0.026), 16, scaledMax(24));
-  const lensFontSize = clamp(Math.round(sourceWidth * 0.021), 14, scaledMax(22));
+  const titleFontSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.045), 72, scaledMax(190))
+    : clamp(Math.round(sourceWidth * 0.054), 30, scaledMax(50));
+  const parameterFontSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.022), 34, scaledMax(92))
+    : clamp(Math.round(sourceWidth * 0.026), 16, scaledMax(24));
+  const lensFontSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.018), 30, scaledMax(76))
+    : clamp(Math.round(sourceWidth * 0.021), 14, scaledMax(22));
   const titleGap = clamp(Math.round(footerHeight * 0.16), 16, scaledMax(30));
   const rowGap = clamp(Math.round(footerHeight * 0.14), 14, scaledMax(26));
   const rowCenterGap = clamp(Math.round(sourceWidth * 0.026), 18, scaledMax(34));
@@ -50,7 +55,7 @@ export function PortraitGalleryCardTemplate({
   const backgroundBlurStd = Math.max(width, height) * 0.036;
   const glowBlurStd = Math.max(width, height) * 0.03;
   const clipId = `portrait-gallery-photo-${Math.round(width)}-${Math.round(height)}`;
-  const lensText = truncateText(compactValue(exifData.lens) ?? 'Lens info unavailable', Math.max(18, Math.floor(sourceWidth * 0.36 / (lensFontSize * 0.55))));
+  const lensText = lensModel ? truncateText(lensModel, Math.max(18, Math.floor(sourceWidth * 0.36 / (lensFontSize * 0.55)))) : null;
   const parameterText = truncateText(parameterLine, Math.max(18, Math.floor(sourceWidth * 0.36 / (parameterFontSize * 0.55))));
 
   return (
@@ -151,28 +156,30 @@ export function PortraitGalleryCardTemplate({
         >
           {cameraTitle}
         </text>
+        {lensText && (
+          <text
+            x={width / 2 - rowCenterGap}
+            y={infoRowY}
+            fill="#E8DACC"
+            fontSize={parameterFontSize}
+            fontFamily="Inter, Arial, sans-serif"
+            fontWeight="600"
+            letterSpacing="0"
+            textAnchor="end"
+          >
+            {lensText}
+          </text>
+        )}
+        {lensText && <circle cx={width / 2} cy={infoRowY - parameterFontSize * 0.34} r={Math.max(2, parameterFontSize * 0.11)} fill="#F6EEE6" fillOpacity="0.34" />}
         <text
-          x={width / 2 - rowCenterGap}
-          y={infoRowY}
-          fill="#E8DACC"
-          fontSize={parameterFontSize}
-          fontFamily="Inter, Arial, sans-serif"
-          fontWeight="600"
-          letterSpacing="0"
-          textAnchor="end"
-        >
-          {lensText}
-        </text>
-        <circle cx={width / 2} cy={infoRowY - parameterFontSize * 0.34} r={Math.max(2, parameterFontSize * 0.11)} fill="#F6EEE6" fillOpacity="0.34" />
-        <text
-          x={width / 2 + rowCenterGap}
+          x={lensText ? width / 2 + rowCenterGap : width / 2}
           y={infoRowY}
           fill="#FFF6ED"
           fontSize={parameterFontSize}
           fontFamily="Inter, Arial, sans-serif"
           fontWeight="650"
           letterSpacing="0"
-          textAnchor="start"
+          textAnchor={lensText ? 'start' : 'middle'}
         >
           {parameterText}
         </text>

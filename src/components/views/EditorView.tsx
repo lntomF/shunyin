@@ -95,6 +95,22 @@ export function EditorView({
                 </div>
               </div>
 
+              {selectedStyle.styleType === 'magazine-cover' && (
+                <div className="space-y-1">
+                  <label className="block text-[9px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{dict.coverTitle}</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={exifData.watermarkTitle ?? ''}
+                      placeholder={dict.brandName}
+                      onChange={(event) => onExifChange('watermarkTitle', event.target.value)}
+                      className="w-full rounded-[0.75rem] border border-secondary/10 bg-surface/70 px-3 py-2 text-xs font-headline tracking-[0.04em] text-primary outline-none shutter-transition focus:border-secondary/30"
+                    />
+                    <Pen size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline" />
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-1">
                 <label className="block text-[9px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{dict.lens}</label>
                 <div className="relative">

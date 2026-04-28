@@ -5,11 +5,6 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function compactValue(value: string) {
-  const trimmed = value.trim();
-  return trimmed && trimmed !== '--' ? trimmed : undefined;
-}
-
 function truncateText(value: string, maxLength: number) {
   if (value.length <= maxLength) {
     return value;
@@ -29,31 +24,41 @@ export function FilmBorderTemplate({
   imageHref,
   cameraTitle,
   brandName,
+  lensModel,
   parameterLine,
-  exifData,
 }: WatermarkSvgProps) {
   const sourceWidth = Math.max(image.width ?? width, 1);
   const sourceHeight = Math.max(image.height ?? height, 1);
   const minEdge = Math.min(sourceWidth, sourceHeight);
   const layoutScale = getWatermarkLayoutScale(sourceWidth, sourceHeight);
   const scaledMax = (value: number) => Math.round(value * layoutScale);
+  const isPortrait = sourceHeight > sourceWidth * 1.12;
   const sidePadding = Math.max((width - sourceWidth) / 2, clamp(Math.round(minEdge * 0.07), 46, scaledMax(108)));
   const topPadding = clamp(Math.round(minEdge * 0.055), 34, scaledMax(88));
-  const bottomPadding = Math.max(height - sourceHeight - topPadding, clamp(Math.round(minEdge * 0.16), 96, scaledMax(210)));
+  const bottomPadding = Math.max(
+    height - sourceHeight - topPadding,
+    clamp(Math.round(minEdge * (isPortrait ? 0.18 : 0.16)), isPortrait ? 112 : 96, scaledMax(isPortrait ? 240 : 210)),
+  );
   const photoX = (width - sourceWidth) / 2;
   const photoY = topPadding;
   const photoBottom = photoY + sourceHeight;
   const captionTop = photoBottom + bottomPadding * 0.26;
-  const labelSize = clamp(Math.round(sourceWidth * 0.011), 10, scaledMax(16));
-  const mainSize = clamp(Math.round(sourceWidth * 0.02), 16, scaledMax(30));
-  const metaSize = clamp(Math.round(sourceWidth * 0.014), 12, scaledMax(20));
+  const labelSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.011), 18, scaledMax(46))
+    : clamp(Math.round(sourceWidth * 0.011), 10, scaledMax(16));
+  const mainSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.023), 38, scaledMax(96))
+    : clamp(Math.round(sourceWidth * 0.02), 16, scaledMax(30));
+  const metaSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.017), 28, scaledMax(72))
+    : clamp(Math.round(sourceWidth * 0.014), 12, scaledMax(20));
   const holeCount = clamp(Math.floor(sourceHeight / 120), 5, 11);
   const holeWidth = clamp(Math.round(sidePadding * 0.28), 12, scaledMax(24));
   const holeHeight = clamp(Math.round(sourceHeight * 0.055), 34, scaledMax(58));
   const holeGap = sourceHeight / holeCount;
   const leftHoleX = photoX - sidePadding * 0.62;
   const rightHoleX = photoX + sourceWidth + sidePadding * 0.34;
-  const lensText = truncateText(compactValue(exifData.lens) ?? 'Lens unavailable', maxChars(sourceWidth * 0.38, metaSize));
+  const lensText = lensModel ? truncateText(lensModel, maxChars(sourceWidth * 0.38, metaSize)) : null;
   const cameraText = truncateText(cameraTitle, maxChars(sourceWidth * 0.38, mainSize));
   const parameterText = truncateText(parameterLine, maxChars(sourceWidth * 0.34, metaSize));
 
@@ -105,17 +110,19 @@ export function FilmBorderTemplate({
       >
         {cameraText}
       </text>
-      <text
-        x={photoX}
-        y={captionTop + mainSize * 1.35 + metaSize * 1.45}
-        fill="#5F5548"
-        fontSize={metaSize}
-        fontFamily="Inter, Arial, sans-serif"
-        fontWeight="620"
-        letterSpacing="0"
-      >
-        {lensText}
-      </text>
+      {lensText && (
+        <text
+          x={photoX}
+          y={captionTop + mainSize * 1.35 + metaSize * 1.45}
+          fill="#5F5548"
+          fontSize={metaSize}
+          fontFamily="Inter, Arial, sans-serif"
+          fontWeight="620"
+          letterSpacing="0"
+        >
+          {lensText}
+        </text>
+      )}
 
       <text
         x={photoX + sourceWidth}

@@ -2,6 +2,7 @@ import type { ExifData, ExportSettings, StyleTemplate } from '../types/app';
 
 export const defaultExifData: ExifData = {
   cameraBody: 'Sony A7R IV',
+  watermarkTitle: 'SHUNYIN',
   lens: 'FE 35mm f/1.4 GM',
   aperture: 'f/1.4',
   shutter: '1/2500',

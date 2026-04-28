@@ -55,6 +55,7 @@ interface DeleteCloudPhotoOptions extends OpenCloudWorkspaceOptions {
 
 const STORED_EXIF_KEYS = [
   'cameraBody',
+  'watermarkTitle',
   'lens',
   'aperture',
   'shutter',
@@ -209,6 +210,7 @@ function normalizeStoredExifData(value: unknown): Partial<StoredExifData> | null
 function serializeExifOverrides(exifData: ExifData): StoredExifData {
   return {
     cameraBody: exifData.cameraBody,
+    watermarkTitle: exifData.watermarkTitle,
     lens: exifData.lens,
     aperture: exifData.aperture,
     shutter: exifData.shutter,
