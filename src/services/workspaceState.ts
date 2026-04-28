@@ -19,7 +19,9 @@ import type {
 import { formatBytes, formatResolution } from '../utils/format';
 import { getLocalExifFallbacks } from '../utils/image';
 
-export const STORAGE_KEY = 'shunyin.workspace.v2';
+export const STORAGE_KEY = 'shunyin.workspace.v3';
+const LEGACY_STORAGE_KEYS = ['shunyin.workspace.v2', 'shunyin.workspace.v1'];
+const STORAGE_SCHEMA_VERSION = 3;
 const MAX_SESSIONS = 6;
 const MAX_EXPORTS = 12;
 
@@ -42,6 +44,7 @@ export interface WorkspaceState {
 }
 
 interface PersistedWorkspaceState {
+  schemaVersion?: number;
   currentView?: ViewType;
   language?: Language;
   theme?: Theme;
@@ -55,6 +58,41 @@ interface PersistedWorkspaceState {
   sourceImage?: WorkspaceImage;
   recentSessions?: SessionItem[];
   exportHistory?: ExportHistoryItem[];
+}
+
+function readPersistedState(key: string): PersistedWorkspaceState | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem(key);
+  if (!raw) {
+    return null;
+  }
+
+  return JSON.parse(raw) as PersistedWorkspaceState;
+}
+
+function removeLegacyStorage() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  for (const key of LEGACY_STORAGE_KEYS) {
+    window.localStorage.removeItem(key);
+  }
+}
+
+function restoreUserPreferences(baseState: WorkspaceState, persisted: PersistedWorkspaceState | null): WorkspaceState {
+  if (!persisted) {
+    return baseState;
+  }
+
+  return {
+    ...baseState,
+    language: persisted.language ?? baseState.language,
+    theme: persisted.theme ?? baseState.theme,
+  };
 }
 
 export type WorkspaceAction =
@@ -194,12 +232,21 @@ export function createInitialState(): WorkspaceState {
   }
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return baseState;
+    const parsed = readPersistedState(STORAGE_KEY);
+    if (!parsed) {
+      const legacyState = LEGACY_STORAGE_KEYS
+        .map((key) => readPersistedState(key))
+        .find((item): item is PersistedWorkspaceState => Boolean(item));
+      removeLegacyStorage();
+      return restoreUserPreferences(baseState, legacyState ?? null);
     }
 
-    const parsed = JSON.parse(raw) as PersistedWorkspaceState;
+    if (parsed.schemaVersion !== STORAGE_SCHEMA_VERSION) {
+      window.localStorage.removeItem(STORAGE_KEY);
+      removeLegacyStorage();
+      return restoreUserPreferences(baseState, parsed);
+    }
+
     const language = parsed.language ?? baseState.language;
     const theme = parsed.theme ?? baseState.theme;
     const workspaceItems = parsed.workspaceItems?.length
@@ -242,6 +289,7 @@ export function persistState(state: WorkspaceState) {
   }
 
   const serializableState = {
+    schemaVersion: STORAGE_SCHEMA_VERSION,
     currentView: state.currentView,
     language: state.language,
     theme: state.theme,

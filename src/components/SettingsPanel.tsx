@@ -237,8 +237,8 @@ export function SettingsPanel({
   return (
     <>
       {open && (
-        <div className="fixed inset-0 z-[65] flex items-center justify-center bg-surface-container-lowest/70 px-4 backdrop-blur-md">
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-secondary/15 bg-surface-container-lowest/90 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
+        <div className="fixed inset-0 z-[65] flex items-center justify-center overflow-y-auto bg-surface-container-lowest/70 px-3 py-4 backdrop-blur-md sm:px-4">
+          <div className="relative max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[1.5rem] border border-secondary/15 bg-surface-container-lowest/90 shadow-[0_30px_80px_rgba(0,0,0,0.2)] sm:rounded-[2rem]">
             <div className="console-grid absolute inset-0 opacity-20" />
             <div className="pointer-events-none absolute -left-10 top-10 h-44 w-44 rounded-full bg-secondary/12 blur-3xl" />
             <div className="pointer-events-none absolute bottom-0 right-0 h-52 w-52 rounded-full bg-tertiary/10 blur-3xl" />

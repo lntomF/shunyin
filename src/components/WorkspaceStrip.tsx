@@ -25,7 +25,7 @@ export function WorkspaceStrip({
   const isVertical = orientation === 'vertical';
 
   return (
-    <section className="console-panel relative overflow-hidden rounded-[1.75rem] p-4">
+    <section className="console-panel relative overflow-hidden rounded-[1.35rem] p-3 sm:rounded-[1.75rem] sm:p-4">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/65 to-transparent" />
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -34,14 +34,14 @@ export function WorkspaceStrip({
         </div>
       </div>
 
-      <div className={isVertical ? 'flex max-h-[calc(100vh-15rem)] flex-col gap-2 overflow-y-auto pr-1' : 'flex gap-2 overflow-x-auto pb-1'}>
+      <div className={isVertical ? 'flex gap-2 overflow-x-auto pb-1 xl:max-h-[calc(100vh-13rem)] xl:flex-col xl:overflow-y-auto xl:pb-0 xl:pr-1' : 'flex gap-2 overflow-x-auto pb-1'}>
         {items.map((item) => {
           const isSelected = item.id === selectedImageId;
           return (
             <div
               key={item.id}
               className={`group relative overflow-hidden rounded-[1.15rem] border text-left transition-all ${
-                isVertical ? 'w-full shrink-0' : 'w-[92px] shrink-0 sm:w-[104px] md:w-[112px]'
+                isVertical ? 'w-[92px] shrink-0 sm:w-[104px] md:w-[112px] xl:w-full' : 'w-[92px] shrink-0 sm:w-[104px] md:w-[112px]'
               } ${
                 isSelected
                   ? 'border-secondary/40 bg-surface/85 shadow-sm'
@@ -51,9 +51,9 @@ export function WorkspaceStrip({
               <button
                 type="button"
                 onClick={() => onSelectImage(item.id)}
-                className={`block w-full text-left ${isVertical ? 'flex items-center gap-3 p-2' : ''}`}
+                className={`block w-full text-left ${isVertical ? 'xl:flex xl:items-center xl:gap-3 xl:p-2' : ''}`}
               >
-                <div className={`overflow-hidden bg-surface-container-low ${isVertical ? 'h-20 w-16 shrink-0 rounded-[0.9rem]' : 'aspect-[3/4]'}`}>
+                <div className={`overflow-hidden bg-surface-container-low ${isVertical ? 'aspect-[3/4] xl:h-16 xl:w-12 xl:shrink-0 xl:rounded-[0.9rem] 2xl:h-20 2xl:w-16' : 'aspect-[3/4]'}`}>
                   <img
                     src={item.image.objectUrl ?? item.image.src}
                     alt={item.image.name}
@@ -61,7 +61,7 @@ export function WorkspaceStrip({
                     referrerPolicy="no-referrer"
                   />
                 </div>
-                <div className={`space-y-1 ${isVertical ? 'min-w-0 flex-1 pr-7' : 'px-2 py-2'}`}>
+                <div className={`space-y-1 ${isVertical ? 'px-2 py-2 xl:min-w-0 xl:flex-1 xl:py-0 xl:pl-0 xl:pr-7' : 'px-2 py-2'}`}>
                   <div className="truncate font-headline text-[11px] font-bold tracking-[0.04em] text-primary">{item.image.name}</div>
                   <div className="truncate font-mono text-[9px] uppercase tracking-[0.16em] text-on-surface-variant">{item.exifData.resolution}</div>
                 </div>

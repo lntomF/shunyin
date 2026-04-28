@@ -89,8 +89,8 @@ export function AuthDialog({
         : dict.authResetPasswordDesc;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/65 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-md overflow-hidden rounded-3xl border border-outline-variant/20 bg-surface-container-low shadow-2xl">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-black/65 px-3 py-4 backdrop-blur-sm sm:px-4">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-outline-variant/20 bg-surface-container-low shadow-2xl sm:rounded-3xl">
         <div className="flex items-start justify-between gap-4 border-b border-outline-variant/10 px-6 py-5">
           <div>
             <h2 className="font-headline text-xl font-black tracking-tight text-primary">{title}</h2>
