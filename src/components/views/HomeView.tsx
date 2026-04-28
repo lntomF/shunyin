@@ -3,7 +3,7 @@ import { ImagePlus } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { Dictionary } from '../../i18n/translations';
 import type { Language, SessionItem, Theme, UploadError, UploadStatus, WorkspaceImage } from '../../types/app';
-import { ACCEPTED_IMAGE_TYPES } from '../../utils/image';
+import { ACCEPTED_IMAGE_EXTENSIONS, ACCEPTED_IMAGE_TYPES } from '../../utils/image';
 import { MatrixMorphCanvas } from '../MatrixMorphCanvas';
 
 interface HomeViewProps {
@@ -32,11 +32,14 @@ export function HomeView({
   theme,
   sourceImage,
   workspaceCount,
+  uploadStatus,
+  uploadError,
   onImportFiles,
   onUploadStatusChange,
   onContinueEditing,
 }: HomeViewProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputId = 'shunyin-photo-import';
   const imageSrc = sourceImage?.objectUrl ?? sourceImage?.src;
   const headingLine1Chars = Array.from(dict.homeHeadingLine1);
   const headingLine2Chars = Array.from(dict.homeHeadingLine2);
@@ -46,9 +49,14 @@ export function HomeView({
 
   const handleFiles = (files: FileList | File[] | null | undefined) => {
     const nextFiles = Array.from(files ?? []);
-    if (!nextFiles.length) return;
+    if (!nextFiles.length) {
+      return;
+    }
+
     onImportFiles(nextFiles);
-    if (inputRef.current) inputRef.current.value = '';
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
   };
 
   // 全页面拖拽支持
@@ -143,6 +151,17 @@ export function HomeView({
   const typedLine2 = headingLine2Chars.slice(0, typedLine2Length).join('');
   const isFirstLineActive = typingPhase === 'typing-line-1' || typingPhase === 'deleting-line-1';
   const isSecondLineActive = typingPhase === 'typing-line-2' || typingPhase === 'pause' || typingPhase === 'deleting-line-2';
+  const uploadMessage = uploadError === 'invalid_type'
+    ? dict.importInvalidType
+    : uploadError === 'file_too_large'
+      ? dict.importFileTooLarge
+      : uploadError === 'import_failed'
+        ? dict.importFailed
+        : uploadStatus === 'loading'
+          ? dict.importLoading
+          : uploadStatus === 'dragging'
+            ? dict.dropActive
+            : null;
 
   return (
     <motion.div
@@ -153,11 +172,12 @@ export function HomeView({
       className="mx-auto max-w-7xl px-6 pb-40 pt-28 lg:px-12"
     >
       <input
+        id={inputId}
         ref={inputRef}
         type="file"
-        accept={ACCEPTED_IMAGE_TYPES.join(',')}
+        accept={[...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_IMAGE_EXTENSIONS].join(',')}
         multiple
-        className="hidden"
+        className="sr-only"
         onChange={(event) => handleFiles(event.target.files)}
       />
 
@@ -200,14 +220,27 @@ export function HomeView({
           </p>
 
           <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              className="group flex items-center gap-3 rounded-[1.35rem] border border-secondary/25 bg-primary px-7 py-4 text-surface shadow-md shutter-transition hover:-translate-y-0.5 hover:opacity-90 active:scale-[0.98]"
+            <label
+              htmlFor={inputId}
+              className="group flex cursor-pointer items-center gap-3 rounded-[1.35rem] border border-secondary/25 bg-primary px-7 py-4 text-surface shadow-md shutter-transition hover:-translate-y-0.5 hover:opacity-90 active:scale-[0.98]"
             >
               <ImagePlus size={18} className="group-hover:translate-x-0.5 shutter-transition" />
               <span className="font-headline text-sm font-bold uppercase tracking-widest">{dict.btnImport}</span>
-            </button>
+            </label>
+
+            {workspaceCount > 0 && (
+              <button
+                type="button"
+                onClick={onContinueEditing}
+                className="console-panel rounded-[1.35rem] px-7 py-4 text-sm font-headline font-bold uppercase tracking-widest text-primary shutter-transition hover:-translate-y-0.5 hover:border-secondary/30 hover:text-secondary active:scale-[0.98]"
+              >
+                {dict.resumeEditing}
+              </button>
+            )}
+          </div>
+
+          <div className="mt-5 min-h-6 text-sm font-medium text-on-surface-variant">
+            {uploadMessage ?? dict.importFormats}
           </div>
         </div>
       </section>

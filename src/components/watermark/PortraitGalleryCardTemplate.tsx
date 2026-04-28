@@ -5,11 +5,25 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function compactValue(value: string) {
+  const trimmed = value.trim();
+  return trimmed && trimmed !== '--' ? trimmed : undefined;
+}
+
+function truncateText(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `${value.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
+}
+
 export function PortraitGalleryCardTemplate({
   width,
   height,
   image,
   imageHref,
+  exifData,
   cameraTitle,
   parameterLine,
 }: WatermarkSvgProps) {
@@ -20,40 +34,50 @@ export function PortraitGalleryCardTemplate({
   const scaledMax = (value: number) => Math.round(value * layoutScale);
   const sidePadding = clamp(Math.round(minEdge * 0.12), 44, scaledMax(140));
   const topPadding = clamp(Math.round(minEdge * 0.08), 28, scaledMax(96));
-  const footerHeight = Math.max(height - sourceHeight - topPadding, clamp(Math.round(minEdge * 0.2), 110, scaledMax(220)));
+  const footerHeight = Math.max(height - sourceHeight - topPadding, clamp(Math.round(minEdge * 0.22), 118, scaledMax(240)));
   const imageX = (width - sourceWidth) / 2;
   const imageY = topPadding;
   const imageBottom = imageY + sourceHeight;
   const imageRadius = clamp(Math.round(minEdge * 0.055), 24, scaledMax(40));
-  const titleFontSize = clamp(Math.round(sourceWidth * 0.064), 34, scaledMax(54));
-  const parameterFontSize = clamp(Math.round(sourceWidth * 0.031), 18, scaledMax(28));
-  const titleGap = clamp(Math.round(footerHeight * 0.2), 18, scaledMax(36));
-  const parameterGap = clamp(Math.round(footerHeight * 0.08), 6, scaledMax(14));
+  const titleFontSize = clamp(Math.round(sourceWidth * 0.054), 30, scaledMax(50));
+  const parameterFontSize = clamp(Math.round(sourceWidth * 0.026), 16, scaledMax(24));
+  const lensFontSize = clamp(Math.round(sourceWidth * 0.021), 14, scaledMax(22));
+  const titleGap = clamp(Math.round(footerHeight * 0.16), 16, scaledMax(30));
+  const rowGap = clamp(Math.round(footerHeight * 0.14), 14, scaledMax(26));
+  const rowCenterGap = clamp(Math.round(sourceWidth * 0.026), 18, scaledMax(34));
   const titleY = imageBottom + titleGap + titleFontSize * 0.72;
-  const parameterY = titleY + parameterGap + parameterFontSize;
+  const infoRowY = titleY + rowGap + parameterFontSize;
   const backgroundBlurStd = Math.max(width, height) * 0.036;
-  const glowBlurStd = Math.max(width, height) * 0.022;
+  const glowBlurStd = Math.max(width, height) * 0.03;
   const clipId = `portrait-gallery-photo-${Math.round(width)}-${Math.round(height)}`;
+  const lensText = truncateText(compactValue(exifData.lens) ?? 'Lens info unavailable', Math.max(18, Math.floor(sourceWidth * 0.36 / (lensFontSize * 0.55))));
+  const parameterText = truncateText(parameterLine, Math.max(18, Math.floor(sourceWidth * 0.36 / (parameterFontSize * 0.55))));
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="portrait-scene-bg" x1={0} y1={0} x2={width} y2={height} gradientUnits="userSpaceOnUse">
-          <stop stopColor="#0C0B0A" />
-          <stop offset="1" stopColor="#090807" />
+          <stop stopColor="#18110E" />
+          <stop offset="0.46" stopColor="#101522" />
+          <stop offset="1" stopColor="#080708" />
         </linearGradient>
         <linearGradient id="portrait-dark-vignette" x1={width / 2} y1={0} x2={width / 2} y2={height} gradientUnits="userSpaceOnUse">
-          <stop stopColor="#050505" stopOpacity="0.18" />
-          <stop offset="0.55" stopColor="#050505" stopOpacity="0.26" />
-          <stop offset="1" stopColor="#050505" stopOpacity="0.54" />
+          <stop stopColor="#030303" stopOpacity="0.02" />
+          <stop offset="0.52" stopColor="#030303" stopOpacity="0.08" />
+          <stop offset="1" stopColor="#030303" stopOpacity="0.28" />
         </linearGradient>
         <linearGradient id="portrait-footer-fade" x1={width / 2} y1={imageBottom - footerHeight * 0.08} x2={width / 2} y2={height} gradientUnits="userSpaceOnUse">
-          <stop stopColor="#090807" stopOpacity="0.08" />
-          <stop offset="1" stopColor="#090807" stopOpacity="0.86" />
+          <stop stopColor="#070605" stopOpacity="0.02" />
+          <stop offset="0.52" stopColor="#080706" stopOpacity="0.38" />
+          <stop offset="1" stopColor="#070605" stopOpacity="0.72" />
         </linearGradient>
         <radialGradient id="portrait-soft-warm" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform={`translate(${width * 0.5} ${height * 0.78}) rotate(90) scale(${footerHeight * 1.2} ${width * 0.55})`}>
-          <stop stopColor="#7A5640" stopOpacity="0.1" />
+          <stop stopColor="#D08A5C" stopOpacity="0.28" />
           <stop offset="1" stopColor="#7A5640" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="portrait-soft-cool" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform={`translate(${width * 0.2} ${height * 0.18}) rotate(52) scale(${width * 0.55} ${height * 0.46})`}>
+          <stop stopColor="#8BB7FF" stopOpacity="0.24" />
+          <stop offset="1" stopColor="#8BB7FF" stopOpacity="0" />
         </radialGradient>
         <filter id="portrait-bg-blur" x="-20%" y="-20%" width="140%" height="140%">
           <feGaussianBlur stdDeviation={backgroundBlurStd} />
@@ -81,7 +105,7 @@ export function PortraitGalleryCardTemplate({
         width={width + sidePadding * 2}
         height={height + topPadding * 2}
         preserveAspectRatio="xMidYMid slice"
-        opacity="0.38"
+        opacity="0.92"
         filter="url(#portrait-bg-blur)"
       />
       <image
@@ -91,10 +115,11 @@ export function PortraitGalleryCardTemplate({
         width={width + sidePadding}
         height={height + topPadding * 0.7}
         preserveAspectRatio="xMidYMid slice"
-        opacity="0.18"
+        opacity="0.48"
         filter="url(#portrait-bg-glow)"
       />
-      <rect width={width} height={height} fill="#070707" fillOpacity="0.34" />
+      <rect width={width} height={height} fill="#070707" fillOpacity="0.06" />
+      <rect width={width} height={height} fill="url(#portrait-soft-cool)" />
       <rect width={width} height={height} fill="url(#portrait-dark-vignette)" />
       <rect x={0} y={imageBottom - footerHeight * 0.12} width={width} height={footerHeight * 1.12} fill="url(#portrait-footer-fade)" />
       <rect x={0} y={imageBottom - footerHeight * 0.08} width={width} height={footerHeight * 0.95} fill="url(#portrait-soft-warm)" />
@@ -121,22 +146,35 @@ export function PortraitGalleryCardTemplate({
           fontFamily="Georgia, Times New Roman, serif"
           fontStyle="italic"
           fontWeight="700"
-          letterSpacing="0.01em"
+          letterSpacing="0"
           textAnchor="middle"
         >
           {cameraTitle}
         </text>
         <text
-          x={width / 2}
-          y={parameterY}
+          x={width / 2 - rowCenterGap}
+          y={infoRowY}
           fill="#E8DACC"
           fontSize={parameterFontSize}
           fontFamily="Inter, Arial, sans-serif"
           fontWeight="600"
-          letterSpacing="0.02em"
-          textAnchor="middle"
+          letterSpacing="0"
+          textAnchor="end"
         >
-          {parameterLine}
+          {lensText}
+        </text>
+        <circle cx={width / 2} cy={infoRowY - parameterFontSize * 0.34} r={Math.max(2, parameterFontSize * 0.11)} fill="#F6EEE6" fillOpacity="0.34" />
+        <text
+          x={width / 2 + rowCenterGap}
+          y={infoRowY}
+          fill="#FFF6ED"
+          fontSize={parameterFontSize}
+          fontFamily="Inter, Arial, sans-serif"
+          fontWeight="650"
+          letterSpacing="0"
+          textAnchor="start"
+        >
+          {parameterText}
         </text>
       </g>
     </svg>

@@ -25,6 +25,9 @@ export function Header({
   sourceImage,
   onOpenSettings,
 }: HeaderProps) {
+  const nextTheme = theme === 'dark' ? 'light' : 'dark';
+  const themeToggleLabel = theme === 'dark' ? dict.switchToLightTheme : dict.switchToDarkTheme;
+
   return (
     <header className="fixed top-0 z-50 w-full site-header backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl items-center gap-5 px-6 py-4">
@@ -41,8 +44,10 @@ export function Header({
         <div className="ml-auto flex shrink-0 items-center gap-3">
           <button
             type="button"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            aria-label="Toggle theme"
+            onClick={() => setTheme(nextTheme)}
+            aria-label={themeToggleLabel}
+            title={themeToggleLabel}
+            aria-pressed={theme === 'light'}
             className="console-panel flex items-center justify-center rounded-full p-2 text-primary shutter-transition hover:-translate-y-0.5 hover:text-secondary active:scale-95"
           >
             {theme === 'dark' ? <Sun size={20} strokeWidth={1.5} /> : <Moon size={20} strokeWidth={1.5} />}

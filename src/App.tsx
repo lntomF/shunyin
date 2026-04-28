@@ -113,11 +113,12 @@ export default function App() {
   );
 
   useEffect(() => {
-    if (state.theme === 'light') {
-      document.body.classList.add('light');
-    } else {
-      document.body.classList.remove('light');
-    }
+    const isLight = state.theme === 'light';
+    document.documentElement.classList.toggle('light', isLight);
+    document.documentElement.classList.toggle('dark', !isLight);
+    document.documentElement.style.colorScheme = state.theme;
+    document.body.classList.toggle('light', isLight);
+    document.body.classList.toggle('dark', !isLight);
   }, [state.theme]);
 
   return (

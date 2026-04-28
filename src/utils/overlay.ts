@@ -112,7 +112,7 @@ export function getRenderedOverlaySize(styleTemplate: StyleTemplate, sourceWidth
       const minEdge = Math.min(sourceWidth, sourceHeight);
       const sidePadding = clamp(Math.round(minEdge * 0.12), 44, getScaledMax(140, layoutScale));
       const topPadding = clamp(Math.round(minEdge * 0.08), 28, getScaledMax(96, layoutScale));
-      const footerHeight = clamp(Math.round(minEdge * 0.2), 110, getScaledMax(220, layoutScale));
+      const footerHeight = clamp(Math.round(minEdge * 0.22), 118, getScaledMax(240, layoutScale));
 
       return {
         width: sourceWidth + sidePadding * 2,

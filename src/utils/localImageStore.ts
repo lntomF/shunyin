@@ -10,7 +10,7 @@ interface StoredImageRecord {
 
 let openDatabasePromise: Promise<IDBDatabase | null> | null = null;
 
-function openDatabase() {
+function openDatabase(): Promise<IDBDatabase | null> {
   if (openDatabasePromise) {
     return openDatabasePromise;
   }
@@ -20,7 +20,7 @@ function openDatabase() {
     return openDatabasePromise;
   }
 
-  openDatabasePromise = new Promise((resolve, reject) => {
+  openDatabasePromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onupgradeneeded = () => {

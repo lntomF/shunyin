@@ -43,6 +43,14 @@
   --color-background: #f8fbff;
 }
 
+html {
+  color-scheme: dark;
+}
+
+html.light {
+  color-scheme: light;
+}
+
 @layer utilities {
   .shutter-transition {
     transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
@@ -112,6 +120,7 @@ body {
     radial-gradient(circle at top, rgba(121, 216, 255, 0.12), transparent 32%),
     radial-gradient(circle at 80% 20%, rgba(110, 231, 200, 0.08), transparent 22%),
     linear-gradient(180deg, #09111f 0%, #07101d 45%, #060d18 100%);
+  transition: background-color 0.35s ease, color 0.35s ease;
 }
 
 .site-header {
@@ -129,7 +138,18 @@ body {
   backdrop-filter: blur(14px);
 }
 
-.light .site-header {}
+.light .site-header {
+  background: linear-gradient(180deg, rgba(248, 251, 255, 0.94), rgba(248, 251, 255, 0.72) 72%, transparent);
+  border-bottom: 1px solid rgba(0, 119, 204, 0.08);
+}
+
+.bottom-nav-shell {
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.light .bottom-nav-shell {
+  box-shadow: 0 -8px 28px rgba(20, 80, 140, 0.1);
+}
 
 .hero-section {
   background:
@@ -190,4 +210,10 @@ body.light::before {
     linear-gradient(rgba(0, 119, 204, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 119, 204, 0.04) 1px, transparent 1px);
   opacity: 0.5;
+}
+
+input,
+select,
+textarea {
+  color-scheme: inherit;
 }

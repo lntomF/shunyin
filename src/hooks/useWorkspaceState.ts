@@ -51,7 +51,7 @@ export function useWorkspaceState() {
   }, [revokeTrackedObjectUrls]);
 
   useEffect(() => {
-    const pendingIds = Array.from(new Set(
+    const pendingIds = Array.from(new Set<string>(
       state.workspaceItems
         .filter((item) => item.image.source === 'local' && !item.image.objectUrl)
         .map((item) => item.id),

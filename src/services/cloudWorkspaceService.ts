@@ -243,7 +243,7 @@ async function fetchWorkspaceRecord(client: SupabaseClient, workspaceId: string)
     throw error;
   }
 
-  return data as CloudWorkspaceRecord;
+  return data as unknown as CloudWorkspaceRecord;
 }
 
 async function listWorkspaceRecords(client: SupabaseClient, userId: string) {
@@ -266,7 +266,7 @@ async function listWorkspaceRecords(client: SupabaseClient, userId: string) {
   }
 
   return {
-    data: (data ?? []) as CloudWorkspaceRecord[],
+    data: (data ?? []) as unknown as CloudWorkspaceRecord[],
     error,
   };
 }
