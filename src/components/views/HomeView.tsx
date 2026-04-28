@@ -169,7 +169,7 @@ export function HomeView({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-      className="mx-auto max-w-7xl px-6 pb-40 pt-28 lg:px-12"
+      className="mx-auto max-w-7xl px-4 pb-28 pt-20 sm:px-6 sm:pb-32 sm:pt-24 lg:px-8"
     >
       <input
         id={inputId}
@@ -182,19 +182,19 @@ export function HomeView({
       />
 
       {/* ── Hero Banner ───────────────────────────────────────── */}
-      <section className="hero-section relative overflow-hidden rounded-[2rem] border border-secondary/10 text-center shadow-[0_28px_80px_rgba(2,7,18,0.42)]">
+      <section className="hero-section relative overflow-hidden rounded-[1.4rem] border border-secondary/10 text-center shadow-[0_28px_80px_rgba(2,7,18,0.42)] sm:rounded-[2rem]">
         <div className="pointer-events-none absolute inset-0">
           <MatrixMorphCanvas imageSrc={imageSrc} variant="hero" theme={theme} />
         </div>
         <div className="pointer-events-none absolute inset-0 hero-overlay-accent" />
         <div className="pointer-events-none absolute inset-0 hero-overlay-gradient" />
 
-        <div className="relative px-6 py-16 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
-          <span className="mb-8 inline-flex items-center rounded-full border border-secondary/20 bg-secondary/10 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.3em] text-secondary">
+        <div className="relative px-4 py-10 sm:px-8 sm:py-14 lg:px-12 lg:py-16 xl:px-14 xl:py-18">
+          <span className="mb-5 inline-flex items-center rounded-full border border-secondary/20 bg-secondary/10 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-secondary sm:mb-6 sm:px-4 sm:py-2">
             {dict.workspaceLabel}
           </span>
 
-          <h2 className="mx-auto mt-6 max-w-4xl font-headline text-6xl font-bold leading-[0.9] tracking-[-0.05em] text-primary lg:text-8xl">
+          <h2 className="mx-auto mt-4 max-w-4xl font-headline text-[clamp(2.6rem,13vw,4.7rem)] font-bold leading-none tracking-[0] text-primary lg:text-[clamp(4.4rem,7vw,6.1rem)]">
             <span className="relative block">
               <span className="invisible">{dict.homeHeadingLine1}</span>
               <span className="absolute inset-0">
@@ -215,14 +215,14 @@ export function HomeView({
             </span>
           </h2>
 
-          <p className="mx-auto mt-8 max-w-xl text-base leading-8 text-on-surface-variant">
+          <p className="mx-auto mt-6 max-w-xl text-sm leading-7 text-on-surface-variant sm:text-base sm:leading-8">
             {dict.heroDesc}
           </p>
 
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:mt-10 sm:gap-4">
             <label
               htmlFor={inputId}
-              className="group flex cursor-pointer items-center gap-3 rounded-[1.35rem] border border-secondary/25 bg-primary px-7 py-4 text-surface shadow-md shutter-transition hover:-translate-y-0.5 hover:opacity-90 active:scale-[0.98]"
+              className="group flex cursor-pointer items-center gap-3 rounded-[1.1rem] border border-secondary/25 bg-primary px-5 py-3 text-surface shadow-md shutter-transition hover:-translate-y-0.5 hover:opacity-90 active:scale-[0.98] sm:rounded-[1.35rem] sm:px-7 sm:py-4"
             >
               <ImagePlus size={18} className="group-hover:translate-x-0.5 shutter-transition" />
               <span className="font-headline text-sm font-bold uppercase tracking-widest">{dict.btnImport}</span>
@@ -232,7 +232,7 @@ export function HomeView({
               <button
                 type="button"
                 onClick={onContinueEditing}
-                className="console-panel rounded-[1.35rem] px-7 py-4 text-sm font-headline font-bold uppercase tracking-widest text-primary shutter-transition hover:-translate-y-0.5 hover:border-secondary/30 hover:text-secondary active:scale-[0.98]"
+                className="console-panel rounded-[1.1rem] px-5 py-3 text-sm font-headline font-bold uppercase tracking-widest text-primary shutter-transition hover:-translate-y-0.5 hover:border-secondary/30 hover:text-secondary active:scale-[0.98] sm:rounded-[1.35rem] sm:px-7 sm:py-4"
               >
                 {dict.resumeEditing}
               </button>

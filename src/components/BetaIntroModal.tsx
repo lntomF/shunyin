@@ -17,14 +17,14 @@ export function BetaIntroModal({ dict, open, onAcknowledge }: BetaIntroModalProp
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-surface-container-lowest/75 px-4 backdrop-blur-md"
+          className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-surface-container-lowest/75 px-4 py-4 backdrop-blur-md"
         >
           <motion.div
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.985 }}
             transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }}
-            className="console-panel relative w-full max-w-xl overflow-hidden rounded-[2rem] p-6 md:p-7"
+            className="console-panel relative max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-[1.5rem] p-5 sm:rounded-[2rem] sm:p-6 md:p-7"
           >
             <div className="console-grid absolute inset-0 opacity-18" />
             <div className="pointer-events-none absolute -left-8 top-0 h-40 w-40 rounded-full bg-secondary/12 blur-3xl" />

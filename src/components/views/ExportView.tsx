@@ -60,12 +60,12 @@ export function ExportView({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -16 }}
       transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
-      className="mx-auto max-w-[1600px] px-4 pb-32 pt-24 md:px-8 xl:px-12"
+      className="mx-auto max-w-[1440px] px-3 pb-24 pt-20 sm:px-4 sm:pb-28 sm:pt-[5.5rem] md:px-6 xl:px-8"
     >
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[220px_minmax(0,1fr)_300px]">
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[190px_minmax(0,1fr)_260px] 2xl:grid-cols-[210px_minmax(0,1fr)_280px]">
 
         {/* 左栏：图片队列竖排 */}
-        <aside className="xl:sticky xl:top-24 xl:self-start">
+        <aside className="xl:sticky xl:top-20 xl:self-start">
           <WorkspaceStrip
             title={dict.imageQueueTitle}
             items={workspaceItems}
@@ -80,7 +80,7 @@ export function ExportView({
 
         {/* 中栏：预览 */}
         <div className="space-y-4">
-          <div className="flex items-center justify-center overflow-hidden rounded-[2rem] border border-secondary/12 bg-surface-container-lowest" style={{ height: '520px' }}>
+          <div className="flex h-[clamp(320px,calc(100vh-13rem),460px)] items-center justify-center overflow-hidden rounded-[1.4rem] border border-secondary/12 bg-surface-container-lowest sm:h-[clamp(360px,calc(100vh-12rem),480px)] sm:rounded-[2rem]">
             <PreviewStage
               image={sourceImage}
               exifData={exifData}
@@ -94,16 +94,16 @@ export function ExportView({
           </div>
 
           {/* 文件信息条 */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="console-panel rounded-[1.2rem] p-4">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+            <div className="console-panel rounded-[1rem] p-3 sm:rounded-[1.2rem] sm:p-4">
               <div className="mb-1 font-mono text-[9px] uppercase tracking-[0.25em] text-secondary">{dict.fileNameLabel}</div>
               <div className="font-mono text-sm text-primary">{exportSettings.fileName}.{exportSettings.format.toLowerCase()}</div>
             </div>
-            <div className="console-panel rounded-[1.2rem] p-4">
+            <div className="console-panel rounded-[1rem] p-3 sm:rounded-[1.2rem] sm:p-4">
               <div className="mb-1 font-mono text-[9px] uppercase tracking-[0.25em] text-secondary">{dict.selectedStyle}</div>
               <div className="font-mono text-sm text-primary">{selectedStyleTitle}</div>
             </div>
-            <div className="console-panel rounded-[1.2rem] p-4">
+            <div className="console-panel rounded-[1rem] p-3 sm:rounded-[1.2rem] sm:p-4">
               <div className="mb-1 font-mono text-[9px] uppercase tracking-[0.25em] text-secondary">{dict.statusLabel}</div>
               <div className="font-mono text-sm text-primary">{statusMessage}</div>
             </div>
@@ -111,8 +111,8 @@ export function ExportView({
         </div>
 
         {/* 右栏：导出设置 + 按钮 */}
-        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
-          <div className="console-panel relative overflow-hidden rounded-[1.6rem] p-5">
+        <aside className="space-y-3 xl:sticky xl:top-20 xl:self-start">
+          <div className="console-panel relative overflow-hidden rounded-[1.35rem] p-4 sm:rounded-[1.6rem] sm:p-5">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/60 to-transparent" />
             <div className="mb-4 text-[10px] font-bold uppercase tracking-[0.24em] text-secondary">{dict.exportTitle}</div>
 
@@ -170,7 +170,7 @@ export function ExportView({
           <button
             onClick={onExportAll}
             disabled={exportStatus === 'rendering'}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-[1.2rem] border border-secondary/25 bg-primary px-5 py-3.5 text-sm font-headline font-bold uppercase tracking-[0.2em] text-surface shadow-md shutter-transition hover:-translate-y-0.5 hover:opacity-90 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-[1.05rem] border border-secondary/25 bg-primary px-5 py-3 text-sm font-headline font-bold uppercase tracking-[0.16em] text-surface shadow-md shutter-transition hover:-translate-y-0.5 hover:opacity-90 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60 sm:rounded-[1.2rem] sm:py-3.5"
           >
             {exportStatus === 'rendering' ? <LoaderCircle size={16} className="animate-spin" /> : <ArrowRight size={16} />}
             {hasMultiple ? `${dict.exportAllLabel} (${workspaceItems.length})` : dict.exportNow}
@@ -180,7 +180,7 @@ export function ExportView({
             <button
               onClick={onExportCurrent}
               disabled={exportStatus === 'rendering'}
-              className="console-panel inline-flex w-full items-center justify-center gap-2 rounded-[1.2rem] px-5 py-3.5 text-sm font-headline font-bold uppercase tracking-[0.2em] text-primary shutter-transition hover:-translate-y-0.5 hover:border-secondary/35 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
+              className="console-panel inline-flex w-full items-center justify-center gap-2 rounded-[1.05rem] px-5 py-3 text-sm font-headline font-bold uppercase tracking-[0.16em] text-primary shutter-transition hover:-translate-y-0.5 hover:border-secondary/35 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60 sm:rounded-[1.2rem] sm:py-3.5"
             >
               {exportStatus === 'rendering' ? <LoaderCircle size={16} className="animate-spin" /> : <Download size={16} />}
               {dict.exportCurrentLabel}
