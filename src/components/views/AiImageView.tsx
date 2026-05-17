@@ -228,6 +228,24 @@ export function AiImageView({ dict }: AiImageViewProps) {
         quality,
       });
 
+      if (job.status === 'succeeded') {
+        const generated = openAiImageJobToGeneratedImage(job);
+        saveResult({
+          file: generated.file,
+          objectUrl: generated.objectUrl,
+          prompt: job.prompt,
+          model: generated.model,
+        });
+        setGenerateStatus('done');
+        return;
+      }
+
+      if (job.status === 'failed') {
+        setGenerateError(getJobFailureMessage(job));
+        setGenerateStatus('error');
+        return;
+      }
+
       setActiveJob({
         id: job.id,
         prompt: job.prompt,

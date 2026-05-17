@@ -88,7 +88,7 @@ const imageGenerationJobs = new Map<string, ImageGenerationJob>();
 function sendJson(res: ServerResponse, status: number, body: unknown) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify(body));
+  res.end(JSON.stringify(redactSensitiveBody(body)));
 }
 
 async function readJsonBody(req: IncomingMessage): Promise<ImageGenerationRequest> {
@@ -153,39 +153,72 @@ function getOpenAiErrorMessage(errorBody: unknown) {
   return 'OpenAI image generation failed.';
 }
 
+function redactSensitiveText(value: string, apiKey?: string) {
+  let redacted = value;
+  const trimmedKey = apiKey?.trim();
+
+  if (trimmedKey) {
+    redacted = redacted.split(trimmedKey).join('[redacted]');
+  }
+
+  return redacted
+    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]{12,}/gi, 'Bearer [redacted]')
+    .replace(/\b(?:sk|sess|rk|pk|org|proj)-[A-Za-z0-9._-]{12,}\b/g, '[redacted]')
+    .replace(/\b[A-Za-z0-9_-]{24,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\b/g, '[redacted]');
+}
+
+function redactSensitiveBody<T>(body: T, apiKey?: string): T {
+  if (typeof body === 'string') {
+    return redactSensitiveText(body, apiKey) as T;
+  }
+
+  if (Array.isArray(body)) {
+    return body.map((item) => redactSensitiveBody(item, apiKey)) as T;
+  }
+
+  if (body && typeof body === 'object') {
+    return Object.fromEntries(
+      Object.entries(body).map(([key, value]) => [key, redactSensitiveBody(value, apiKey)]),
+    ) as T;
+  }
+
+  return body;
+}
+
 function isProviderTimeout(status: number, message: string) {
   return status === 524 || /status_code\s*=\s*524|bad response status code 524|timeout|timed out/i.test(message);
 }
 
-function createProviderFailureBody(status: number, responseBody: unknown): ProviderFailureBody {
+function createProviderFailureBody(status: number, responseBody: unknown, apiKey?: string): ProviderFailureBody {
   const message = getOpenAiErrorMessage(responseBody);
+  const safeMessage = redactSensitiveText(message, apiKey);
   const timeout = isProviderTimeout(status, message);
 
   return {
     error: timeout ? 'provider_timeout' : 'openai_request_failed',
     message: timeout
       ? 'The SHUNYIN relay timed out while waiting for the upstream image model. The job failed; try another model or retry later.'
-      : message,
-    providerMessage: message,
+      : safeMessage,
+    providerMessage: safeMessage,
     statusCode: status,
   };
 }
 
-function sendProviderFailure(res: ServerResponse, status: number, responseBody: unknown) {
-  sendJson(res, status, createProviderFailureBody(status, responseBody));
+function sendProviderFailure(res: ServerResponse, status: number, responseBody: unknown, apiKey?: string) {
+  sendJson(res, status, createProviderFailureBody(status, responseBody, apiKey));
 }
 
-function getServerErrorMessage(error: unknown) {
+function getServerErrorMessage(error: unknown, apiKey?: string) {
   if (!(error instanceof Error)) {
     return 'Image generation failed.';
   }
 
   const cause = error.cause;
   if (cause instanceof Error && cause.message) {
-    return `${error.message}: ${cause.message}`;
+    return redactSensitiveText(`${error.message}: ${cause.message}`, apiKey);
   }
 
-  return error.message;
+  return redactSensitiveText(error.message, apiKey);
 }
 
 function getAuthHeaders(apiKey: string, organization?: string, project?: string) {
@@ -329,8 +362,11 @@ function createOpenAiImagePlugin(env: Record<string, string>): Plugin {
       return;
     }
 
+    let requestApiKeyForRedaction: string | undefined;
+
     try {
       const body = await readJsonBody(req);
+      requestApiKeyForRedaction = typeof body.apiKey === 'string' ? body.apiKey : undefined;
       const { apiKey } = readProviderConfig(body);
       const response = await fetch(endpointUrl(baseUrl, '/models'), {
         method: 'GET',
@@ -340,7 +376,7 @@ function createOpenAiImagePlugin(env: Record<string, string>): Plugin {
       const responseBody = await response.json().catch(() => null) as OpenAIModelsResponse | null;
 
       if (!response.ok) {
-        sendProviderFailure(res, response.status, responseBody);
+        sendProviderFailure(res, response.status, responseBody, apiKey);
         return;
       }
 
@@ -360,7 +396,7 @@ function createOpenAiImagePlugin(env: Record<string, string>): Plugin {
           ? 'Enter an API key in the page before fetching models.'
           : message === 'github_token_used_as_openai_key'
             ? 'The API key looks like a GitHub token. Use an OpenAI-compatible API key instead.'
-            : getServerErrorMessage(error),
+            : getServerErrorMessage(error, requestApiKeyForRedaction),
       });
     }
   };
@@ -406,7 +442,7 @@ function createOpenAiImagePlugin(env: Record<string, string>): Plugin {
 
       if (!openAiResponse.ok) {
         job.status = 'failed';
-        job.error = createProviderFailureBody(openAiResponse.status, responseBody);
+        job.error = createProviderFailureBody(openAiResponse.status, responseBody, apiKey);
         job.updatedAt = Date.now();
         return;
       }
@@ -448,7 +484,7 @@ function createOpenAiImagePlugin(env: Record<string, string>): Plugin {
       job.status = 'failed';
       job.error = {
         error: 'image_generation_failed',
-        message: getServerErrorMessage(error),
+        message: getServerErrorMessage(error, apiKey),
         statusCode: 500,
       };
       job.updatedAt = Date.now();
@@ -467,8 +503,11 @@ function createOpenAiImagePlugin(env: Record<string, string>): Plugin {
       return;
     }
 
+    let requestApiKeyForRedaction: string | undefined;
+
     try {
       const body = await readJsonBody(req);
+      requestApiKeyForRedaction = typeof body.apiKey === 'string' ? body.apiKey : undefined;
       const { apiKey } = readProviderConfig(body);
       const model = asTrimmedString(body.model) || fallbackModel;
       const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
@@ -517,7 +556,7 @@ function createOpenAiImagePlugin(env: Record<string, string>): Plugin {
     } catch (error) {
       sendJson(res, error instanceof SyntaxError ? 400 : 500, {
         error: error instanceof SyntaxError ? 'invalid_json' : 'image_generation_failed',
-        message: getServerErrorMessage(error),
+        message: getServerErrorMessage(error, requestApiKeyForRedaction),
       });
     }
   };
@@ -534,8 +573,11 @@ function createOpenAiImagePlugin(env: Record<string, string>): Plugin {
       return;
     }
 
+    let requestApiKeyForRedaction: string | undefined;
+
     try {
       const body = await readJsonBody(req);
+      requestApiKeyForRedaction = typeof body.apiKey === 'string' ? body.apiKey : undefined;
       const { apiKey } = readProviderConfig(body);
       const model = asTrimmedString(body.model) || fallbackModel;
       const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
@@ -563,7 +605,7 @@ function createOpenAiImagePlugin(env: Record<string, string>): Plugin {
       const responseBody = await openAiResponse.json().catch(() => null) as OpenAIImageResponse | null;
 
       if (!openAiResponse.ok) {
-        sendProviderFailure(res, openAiResponse.status, responseBody);
+        sendProviderFailure(res, openAiResponse.status, responseBody, apiKey);
         return;
       }
 
@@ -595,7 +637,7 @@ function createOpenAiImagePlugin(env: Record<string, string>): Plugin {
     } catch (error) {
       sendJson(res, error instanceof SyntaxError ? 400 : 500, {
         error: error instanceof SyntaxError ? 'invalid_json' : 'image_generation_failed',
-        message: getServerErrorMessage(error),
+        message: getServerErrorMessage(error, requestApiKeyForRedaction),
       });
     }
   };
