@@ -1,5 +1,6 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import path from 'path';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
@@ -10,6 +11,8 @@ const DEFAULT_IMAGE_SIZE = '1024x1024';
 const ALLOWED_IMAGE_QUALITIES = new Set(['low', 'medium', 'high', 'auto']);
 const ALLOWED_ASPECT_RATIOS = new Set(['auto', '1:1', '16:9', '9:16', '4:3', '3:4']);
 const MAX_REQUEST_BYTES = 24 * 1024 * 1024;
+const IMAGE_JOB_TTL_MS = 30 * 60 * 1000;
+const MAX_IMAGE_JOBS = 80;
 
 interface ImageGenerationRequest {
   apiKey?: unknown;
@@ -51,6 +54,36 @@ interface OpenAIImageResponse {
   size?: string;
   usage?: unknown;
 }
+
+type ImageGenerationJobStatus = 'queued' | 'running' | 'succeeded' | 'failed';
+
+interface ProviderFailureBody {
+  error: string;
+  message: string;
+  providerMessage?: string;
+  statusCode?: number;
+}
+
+interface ImageGenerationJob {
+  id: string;
+  status: ImageGenerationJobStatus;
+  createdAt: number;
+  updatedAt: number;
+  expiresAt: number;
+  prompt: string;
+  model: string;
+  result?: {
+    imageBase64: string;
+    mimeType?: string;
+    revisedPrompt?: string;
+    model?: string;
+    size?: string;
+    usage?: unknown;
+  };
+  error?: ProviderFailureBody;
+}
+
+const imageGenerationJobs = new Map<string, ImageGenerationJob>();
 
 function sendJson(res: ServerResponse, status: number, body: unknown) {
   res.statusCode = status;
@@ -124,17 +157,22 @@ function isProviderTimeout(status: number, message: string) {
   return status === 524 || /status_code\s*=\s*524|bad response status code 524|timeout|timed out/i.test(message);
 }
 
-function sendProviderFailure(res: ServerResponse, status: number, responseBody: unknown) {
+function createProviderFailureBody(status: number, responseBody: unknown): ProviderFailureBody {
   const message = getOpenAiErrorMessage(responseBody);
   const timeout = isProviderTimeout(status, message);
 
-  sendJson(res, status, {
+  return {
     error: timeout ? 'provider_timeout' : 'openai_request_failed',
     message: timeout
-      ? 'The SHUNYIN relay timed out while waiting for the upstream image model. Try a lower quality setting, another model, or retry later.'
+      ? 'The SHUNYIN relay timed out while waiting for the upstream image model. The job failed; try another model or retry later.'
       : message,
     providerMessage: message,
-  });
+    statusCode: status,
+  };
+}
+
+function sendProviderFailure(res: ServerResponse, status: number, responseBody: unknown) {
+  sendJson(res, status, createProviderFailureBody(status, responseBody));
 }
 
 function getServerErrorMessage(error: unknown) {
@@ -222,6 +260,41 @@ async function resolveImagePayload(image: NonNullable<OpenAIImageResponse['data'
   return null;
 }
 
+function pruneImageJobs() {
+  const now = Date.now();
+
+  for (const [id, job] of imageGenerationJobs) {
+    if (job.expiresAt <= now) {
+      imageGenerationJobs.delete(id);
+    }
+  }
+
+  if (imageGenerationJobs.size <= MAX_IMAGE_JOBS) {
+    return;
+  }
+
+  const jobsByAge = [...imageGenerationJobs.values()].sort((left, right) => left.createdAt - right.createdAt);
+  const overflow = imageGenerationJobs.size - MAX_IMAGE_JOBS;
+
+  for (const job of jobsByAge.slice(0, overflow)) {
+    imageGenerationJobs.delete(job.id);
+  }
+}
+
+function serializeImageJob(job: ImageGenerationJob) {
+  return {
+    id: job.id,
+    status: job.status,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+    expiresAt: job.expiresAt,
+    prompt: job.prompt,
+    model: job.model,
+    result: job.result,
+    error: job.error,
+  };
+}
+
 function createOpenAiImagePlugin(env: Record<string, string>): Plugin {
   const fallbackApiKey = env.OPENAI_API_KEY;
   const baseUrl = DEFAULT_OPENAI_BASE_URL;
@@ -307,7 +380,150 @@ function createOpenAiImagePlugin(env: Record<string, string>): Plugin {
     });
   };
 
-  const handleGenerateImage = async (req: IncomingMessage, res: ServerResponse) => {
+  const runImageGenerationJob = async ({
+    jobId,
+    apiKey,
+    payload,
+  }: {
+    jobId: string;
+    apiKey: string;
+    payload: Record<string, string | number>;
+  }) => {
+    const job = imageGenerationJobs.get(jobId);
+    if (!job) {
+      return;
+    }
+
+    job.status = 'running';
+    job.updatedAt = Date.now();
+
+    try {
+      const openAiResponse = await sendProviderImageRequest({
+        apiKey,
+        payload,
+      });
+
+      const responseBody = await openAiResponse.json().catch(() => null) as OpenAIImageResponse | null;
+
+      if (!openAiResponse.ok) {
+        job.status = 'failed';
+        job.error = createProviderFailureBody(openAiResponse.status, responseBody);
+        job.updatedAt = Date.now();
+        return;
+      }
+
+      const image = responseBody?.data?.[0];
+      if (!image) {
+        job.status = 'failed';
+        job.error = {
+          error: 'missing_image_data',
+          message: 'OpenAI returned no image data.',
+          statusCode: 502,
+        };
+        job.updatedAt = Date.now();
+        return;
+      }
+
+      const imagePayload = await resolveImagePayload(image);
+      if (!imagePayload) {
+        job.status = 'failed';
+        job.error = {
+          error: 'missing_image_data',
+          message: 'The image provider returned neither b64_json nor url.',
+          statusCode: 502,
+        };
+        job.updatedAt = Date.now();
+        return;
+      }
+
+      job.status = 'succeeded';
+      job.result = {
+        ...imagePayload,
+        revisedPrompt: image.revised_prompt,
+        model: job.model,
+        size: responseBody?.size ?? DEFAULT_IMAGE_SIZE,
+        usage: responseBody?.usage,
+      };
+      job.updatedAt = Date.now();
+    } catch (error) {
+      job.status = 'failed';
+      job.error = {
+        error: 'image_generation_failed',
+        message: getServerErrorMessage(error),
+        statusCode: 500,
+      };
+      job.updatedAt = Date.now();
+    }
+  };
+
+  const handleCreateImageJob = async (req: IncomingMessage, res: ServerResponse) => {
+    if (req.method === 'OPTIONS') {
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
+
+    if (req.method !== 'POST') {
+      sendJson(res, 405, { error: 'method_not_allowed' });
+      return;
+    }
+
+    try {
+      const body = await readJsonBody(req);
+      const { apiKey } = readProviderConfig(body);
+      const model = asTrimmedString(body.model) || fallbackModel;
+      const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
+
+      if (!prompt) {
+        sendJson(res, 400, { error: 'missing_prompt' });
+        return;
+      }
+
+      const aspectRatio = asAllowedValue(body.aspectRatio, ALLOWED_ASPECT_RATIOS, 'auto');
+      const quality = asAllowedValue(body.quality, ALLOWED_IMAGE_QUALITIES, 'medium');
+
+      pruneImageJobs();
+
+      const jobId = randomUUID();
+      const now = Date.now();
+      const payload = addAspectRatio({
+        model,
+        prompt,
+        n: 1,
+        size: DEFAULT_IMAGE_SIZE,
+        quality,
+        output_format: 'png',
+      }, aspectRatio);
+
+      const job: ImageGenerationJob = {
+        id: jobId,
+        status: 'queued',
+        createdAt: now,
+        updatedAt: now,
+        expiresAt: now + IMAGE_JOB_TTL_MS,
+        prompt,
+        model,
+      };
+
+      imageGenerationJobs.set(jobId, job);
+      void runImageGenerationJob({
+        jobId,
+        apiKey,
+        payload,
+      });
+
+      sendJson(res, 202, {
+        job: serializeImageJob(job),
+      });
+    } catch (error) {
+      sendJson(res, error instanceof SyntaxError ? 400 : 500, {
+        error: error instanceof SyntaxError ? 'invalid_json' : 'image_generation_failed',
+        message: getServerErrorMessage(error),
+      });
+    }
+  };
+
+  const handleLegacyGenerateImage = async (req: IncomingMessage, res: ServerResponse) => {
     if (req.method === 'OPTIONS') {
       res.statusCode = 204;
       res.end();
@@ -385,15 +601,51 @@ function createOpenAiImagePlugin(env: Record<string, string>): Plugin {
     }
   };
 
+  const handleGetImageJob = (req: IncomingMessage, res: ServerResponse) => {
+    if (req.method === 'OPTIONS') {
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
+
+    if (req.method !== 'GET') {
+      sendJson(res, 405, { error: 'method_not_allowed' });
+      return;
+    }
+
+    pruneImageJobs();
+
+    const requestPath = req.url?.split('?')[0] ?? '';
+    const pathParts = requestPath.split('/').filter(Boolean);
+    const jobId = pathParts.at(-1) ?? '';
+    const job = imageGenerationJobs.get(jobId);
+
+    if (!job) {
+      sendJson(res, 404, {
+        error: 'image_job_not_found',
+        message: 'Image generation job was not found or has expired.',
+      });
+      return;
+    }
+
+    sendJson(res, 200, {
+      job: serializeImageJob(job),
+    });
+  };
+
   return {
     name: 'shunyin-openai-image-api',
     configureServer(server) {
       server.middlewares.use('/api/openai/models', handleListModels);
-      server.middlewares.use('/api/openai/images', handleGenerateImage);
+      server.middlewares.use('/api/openai/image-jobs', handleGetImageJob);
+      server.middlewares.use('/api/openai/images/sync', handleLegacyGenerateImage);
+      server.middlewares.use('/api/openai/images', handleCreateImageJob);
     },
     configurePreviewServer(server) {
       server.middlewares.use('/api/openai/models', handleListModels);
-      server.middlewares.use('/api/openai/images', handleGenerateImage);
+      server.middlewares.use('/api/openai/image-jobs', handleGetImageJob);
+      server.middlewares.use('/api/openai/images/sync', handleLegacyGenerateImage);
+      server.middlewares.use('/api/openai/images', handleCreateImageJob);
     },
   };
 }

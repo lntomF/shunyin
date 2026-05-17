@@ -35,6 +35,45 @@ interface FetchOpenAiModelsResponse {
   providerMessage?: string;
 }
 
+interface CreateOpenAiImageJobResponse {
+  job?: OpenAiImageJob;
+  message?: string;
+  error?: string;
+  providerMessage?: string;
+}
+
+interface FetchOpenAiImageJobResponse {
+  job?: OpenAiImageJob;
+  message?: string;
+  error?: string;
+  providerMessage?: string;
+}
+
+export type OpenAiImageJobStatus = 'queued' | 'running' | 'succeeded' | 'failed';
+
+export interface OpenAiImageJob {
+  id: string;
+  status: OpenAiImageJobStatus;
+  createdAt: number;
+  updatedAt: number;
+  expiresAt: number;
+  prompt: string;
+  model: string;
+  result?: {
+    imageBase64: string;
+    mimeType?: string;
+    revisedPrompt?: string;
+    model?: string;
+    size?: string;
+  };
+  error?: {
+    error?: string;
+    message?: string;
+    providerMessage?: string;
+    statusCode?: number;
+  };
+}
+
 interface GenerateOpenAiImageResponse {
   imageBase64: string;
   mimeType?: string;
@@ -80,6 +119,45 @@ function getErrorMessage(body: unknown, fallback: string) {
   return fallback;
 }
 
+function requireJob(body: CreateOpenAiImageJobResponse | FetchOpenAiImageJobResponse | null, fallback: string) {
+  if (!body?.job) {
+    throw new Error(getErrorMessage(body, fallback));
+  }
+
+  return body.job;
+}
+
+function imageBase64ToGeneratedImage({
+  imageBase64,
+  mimeType = 'image/png',
+  prompt,
+  model,
+  revisedPrompt,
+  size,
+}: {
+  imageBase64: string;
+  mimeType?: string;
+  prompt: string;
+  model?: string;
+  revisedPrompt?: string;
+  size?: string;
+}): GeneratedOpenAiImage {
+  const blob = base64ToBlob(imageBase64, mimeType);
+  const safeName = sanitizeFileName(prompt).slice(0, 46) || 'openai-image';
+  const file = new File([blob], `${safeName || 'openai-image'}.png`, {
+    type: mimeType,
+    lastModified: Date.now(),
+  });
+
+  return {
+    file,
+    objectUrl: URL.createObjectURL(blob),
+    revisedPrompt,
+    model,
+    size,
+  };
+}
+
 export async function fetchOpenAiModels({
   apiKey,
 }: FetchOpenAiModelsOptions) {
@@ -113,7 +191,7 @@ export async function generateOpenAiImage({
   aspectRatio,
   quality,
 }: GenerateOpenAiImageOptions): Promise<GeneratedOpenAiImage> {
-  const response = await fetch('/api/openai/images', {
+  const response = await fetch('/api/openai/images/sync', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -134,19 +212,72 @@ export async function generateOpenAiImage({
     throw new Error(getErrorMessage(body, 'Image generation failed.'));
   }
 
-  const mimeType = body.mimeType || 'image/png';
-  const blob = base64ToBlob(body.imageBase64, mimeType);
-  const safeName = sanitizeFileName(prompt).slice(0, 46) || 'openai-image';
-  const file = new File([blob], `${safeName || 'openai-image'}.png`, {
-    type: mimeType,
-    lastModified: Date.now(),
+  return imageBase64ToGeneratedImage({
+    imageBase64: body.imageBase64,
+    mimeType: body.mimeType,
+    prompt,
+    model: body.model,
+    revisedPrompt: body.revisedPrompt,
+    size: body.size,
+  });
+}
+
+export async function createOpenAiImageJob({
+  apiKey,
+  model,
+  prompt,
+  aspectRatio,
+  quality,
+}: GenerateOpenAiImageOptions): Promise<OpenAiImageJob> {
+  const response = await fetch('/api/openai/images', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      apiKey,
+      model,
+      prompt,
+      size: DEFAULT_IMAGE_SIZE,
+      aspectRatio,
+      quality,
+    }),
   });
 
-  return {
-    file,
-    objectUrl: URL.createObjectURL(blob),
-    revisedPrompt: body.revisedPrompt,
-    model: body.model,
-    size: body.size,
-  };
+  const body = await response.json().catch(() => null) as CreateOpenAiImageJobResponse | null;
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(body, 'Image job creation failed.'));
+  }
+
+  return requireJob(body, 'Image job creation failed.');
+}
+
+export async function fetchOpenAiImageJob(jobId: string): Promise<OpenAiImageJob> {
+  const response = await fetch(`/api/openai/image-jobs/${encodeURIComponent(jobId)}`, {
+    method: 'GET',
+  });
+
+  const body = await response.json().catch(() => null) as FetchOpenAiImageJobResponse | null;
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(body, 'Image job status request failed.'));
+  }
+
+  return requireJob(body, 'Image job status request failed.');
+}
+
+export function openAiImageJobToGeneratedImage(job: OpenAiImageJob): GeneratedOpenAiImage {
+  if (!job.result?.imageBase64) {
+    throw new Error(job.error?.message || 'Image generation job has no image result.');
+  }
+
+  return imageBase64ToGeneratedImage({
+    imageBase64: job.result.imageBase64,
+    mimeType: job.result.mimeType,
+    prompt: job.prompt,
+    model: job.result.model || job.model,
+    revisedPrompt: job.result.revisedPrompt,
+    size: job.result.size,
+  });
 }

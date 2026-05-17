@@ -3,12 +3,15 @@ import { Download, Expand, KeyRound, RefreshCw, Sparkles, X } from 'lucide-react
 import { motion } from 'motion/react';
 import type { Dictionary } from '../../i18n/translations';
 import {
+  createOpenAiImageJob,
+  fetchOpenAiImageJob,
   fetchOpenAiModels,
-  generateOpenAiImage,
+  openAiImageJobToGeneratedImage,
   SHUNYIN_API_KEY_STORAGE_KEY,
   SHUNYIN_IMAGE_MODEL_STORAGE_KEY,
   type GeneratedImageAspectRatio,
   type GeneratedImageQuality,
+  type OpenAiImageJob,
   type OpenAiProviderModel,
 } from '../../services/openAiImageService';
 
@@ -23,6 +26,15 @@ interface AiImageResult {
   objectUrl: string;
   prompt: string;
   model?: string;
+}
+
+interface ActiveImageJob {
+  id: string;
+  prompt: string;
+  model: string;
+  status: OpenAiImageJob['status'];
+  createdAt: number;
+  updatedAt: number;
 }
 
 function revokeResult(result: AiImageResult | null) {
@@ -65,6 +77,8 @@ export function AiImageView({ dict }: AiImageViewProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [generateStatus, setGenerateStatus] = useState<AiJobStatus>('idle');
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const [activeJob, setActiveJob] = useState<ActiveImageJob | null>(null);
+  const [pollTick, setPollTick] = useState(0);
 
   useEffect(() => {
     try {
@@ -108,6 +122,10 @@ export function AiImageView({ dict }: AiImageViewProps) {
     return message;
   };
 
+  const getJobFailureMessage = (job: OpenAiImageJob) => (
+    normalizeProviderError(job.error?.providerMessage || job.error?.message || dict.aiGenerateFailed, dict.aiGenerateFailed)
+  );
+
   const handleApiKeyChange = (value: string) => {
     setApiKey(value);
     persistApiSettings(value, model);
@@ -116,6 +134,7 @@ export function AiImageView({ dict }: AiImageViewProps) {
     setModelError(null);
     setGenerateStatus('idle');
     setGenerateError(null);
+    setActiveJob(null);
   };
 
   const handleModelChange = (value: string) => {
@@ -131,6 +150,7 @@ export function AiImageView({ dict }: AiImageViewProps) {
     setModelError(null);
     setGenerateStatus('idle');
     setGenerateError(null);
+    setActiveJob(null);
 
     try {
       window.localStorage.removeItem(SHUNYIN_API_KEY_STORAGE_KEY);
@@ -197,9 +217,10 @@ export function AiImageView({ dict }: AiImageViewProps) {
     persistApiSettings();
     setGenerateStatus('loading');
     setGenerateError(null);
+    setActiveJob(null);
 
     try {
-      const generated = await generateOpenAiImage({
+      const job = await createOpenAiImageJob({
         apiKey: apiKey.trim(),
         model: model.trim(),
         prompt: prompt.trim(),
@@ -207,18 +228,79 @@ export function AiImageView({ dict }: AiImageViewProps) {
         quality,
       });
 
-      saveResult({
-        file: generated.file,
-        objectUrl: generated.objectUrl,
-        prompt: prompt.trim(),
-        model: generated.model,
+      setActiveJob({
+        id: job.id,
+        prompt: job.prompt,
+        model: job.model,
+        status: job.status,
+        createdAt: job.createdAt,
+        updatedAt: job.updatedAt,
       });
-      setGenerateStatus('done');
+      setPollTick((current) => current + 1);
     } catch (error) {
       setGenerateError(normalizeProviderError(error, dict.aiGenerateFailed));
       setGenerateStatus('error');
+      setActiveJob(null);
     }
   };
+
+  useEffect(() => {
+    if (!activeJob || generateStatus !== 'loading') {
+      return undefined;
+    }
+
+    let cancelled = false;
+    const timeout = window.setTimeout(async () => {
+      try {
+        const job = await fetchOpenAiImageJob(activeJob.id);
+        if (cancelled) {
+          return;
+        }
+
+        setActiveJob({
+          id: job.id,
+          prompt: job.prompt,
+          model: job.model,
+          status: job.status,
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt,
+        });
+
+        if (job.status === 'succeeded') {
+          const generated = openAiImageJobToGeneratedImage(job);
+          saveResult({
+            file: generated.file,
+            objectUrl: generated.objectUrl,
+            prompt: job.prompt,
+            model: generated.model,
+          });
+          setGenerateStatus('done');
+          setActiveJob(null);
+          return;
+        }
+
+        if (job.status === 'failed') {
+          setGenerateError(getJobFailureMessage(job));
+          setGenerateStatus('error');
+          setActiveJob(null);
+          return;
+        }
+
+        setPollTick((current) => current + 1);
+      } catch (error) {
+        if (!cancelled) {
+          setGenerateError(normalizeProviderError(error, dict.aiGenerateFailed));
+          setGenerateStatus('error');
+          setActiveJob(null);
+        }
+      }
+    }, activeJob.status === 'queued' ? 1000 : 2000);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [activeJob, dict.aiGenerateFailed, generateStatus, pollTick]);
 
   const handleDownload = () => {
     if (!resultImage) {
@@ -241,7 +323,13 @@ export function AiImageView({ dict }: AiImageViewProps) {
     ? dict.aiGenerated
     : generateStatus === 'error'
       ? generateError ?? dict.aiGenerateFailed
-      : dict.aiGenerateHint;
+      : generateStatus === 'loading'
+        ? activeJob?.status === 'running'
+          ? dict.aiJobRunning
+          : activeJob?.status === 'queued'
+            ? dict.aiJobQueued
+            : dict.aiJobCreating
+        : dict.aiGenerateHint;
 
   return (
     <motion.div
@@ -351,8 +439,10 @@ export function AiImageView({ dict }: AiImageViewProps) {
             value={prompt}
             onChange={(event) => {
               setPrompt(event.target.value);
-              setGenerateStatus('idle');
-              setGenerateError(null);
+              if (generateStatus !== 'loading') {
+                setGenerateStatus('idle');
+                setGenerateError(null);
+              }
             }}
             placeholder={dict.aiPromptPlaceholder}
             className="min-h-[13rem] flex-1 resize-none rounded-[0.95rem] border border-secondary/10 bg-surface/70 px-4 py-4 text-base leading-7 text-primary outline-none shutter-transition placeholder:text-outline focus:border-tertiary/35"
