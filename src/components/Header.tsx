@@ -30,7 +30,7 @@ export function Header({
 
   return (
     <header className="fixed top-0 z-50 w-full site-header backdrop-blur-xl">
-      <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-3 py-2.5 sm:gap-5 sm:px-6 sm:py-3.5">
+      <div className="mx-auto flex w-full max-w-[1920px] items-center gap-3 px-3 py-2.5 sm:gap-5 sm:px-6 sm:py-3.5 xl:px-8">
         <div className="flex shrink-0 items-center gap-3 sm:gap-4">
           <button aria-label={brandName} className="flex h-10 w-10 items-center justify-center rounded-2xl border border-secondary/20 bg-surface-container-high text-secondary shutter-transition hover:-translate-y-0.5 hover:border-secondary/35 active:scale-95 sm:h-11 sm:w-11">
             <Camera size={22} strokeWidth={1.5} />

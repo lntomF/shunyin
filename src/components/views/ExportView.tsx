@@ -60,9 +60,9 @@ export function ExportView({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -16 }}
       transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
-      className="mx-auto max-w-[1440px] px-3 pb-24 pt-20 sm:px-4 sm:pb-28 sm:pt-[5.5rem] md:px-6 xl:px-8"
+      className="mx-auto min-h-[calc(100dvh-7rem)] w-full max-w-[1920px] px-3 pb-24 pt-20 sm:px-5 sm:pb-28 sm:pt-[5.5rem] lg:px-6 xl:px-8"
     >
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[190px_minmax(0,1fr)_260px] 2xl:grid-cols-[210px_minmax(0,1fr)_280px]">
+      <section className="grid min-h-[calc(100dvh-10rem)] grid-cols-1 gap-4 xl:grid-cols-[240px_minmax(0,1fr)_320px] 2xl:grid-cols-[280px_minmax(0,1fr)_360px]">
 
         {/* 左栏：图片队列竖排 */}
         <aside className="xl:sticky xl:top-20 xl:self-start">
@@ -79,8 +79,8 @@ export function ExportView({
         </aside>
 
         {/* 中栏：预览 */}
-        <div className="space-y-4">
-          <div className="flex h-[clamp(320px,calc(100vh-13rem),460px)] items-center justify-center overflow-hidden rounded-[1.4rem] border border-secondary/12 bg-surface-container-lowest sm:h-[clamp(360px,calc(100vh-12rem),480px)] sm:rounded-[2rem]">
+        <div className="min-h-0 space-y-4">
+          <div className="flex min-h-[30rem] items-center justify-center overflow-hidden rounded-[1.4rem] border border-secondary/12 bg-surface-container-lowest sm:min-h-[36rem] sm:rounded-[2rem] xl:h-[calc(100dvh-17rem)] xl:min-h-0">
             <PreviewStage
               image={sourceImage}
               exifData={exifData}

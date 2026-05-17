@@ -106,7 +106,6 @@ export function MagazineCoverTemplate({
         >
           PHOTO FIELD NOTE / LOCAL ISSUE
         </text>
-
         <text
           x={padding}
           y={height - padding - coverTitleSize * 1.4}

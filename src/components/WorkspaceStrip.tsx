@@ -53,7 +53,7 @@ export function WorkspaceStrip({
                 onClick={() => onSelectImage(item.id)}
                 className={`block w-full text-left ${isVertical ? 'xl:flex xl:items-center xl:gap-3 xl:p-2' : ''}`}
               >
-                <div className={`overflow-hidden bg-surface-container-low ${isVertical ? 'aspect-[3/4] xl:h-16 xl:w-12 xl:shrink-0 xl:rounded-[0.9rem] 2xl:h-20 2xl:w-16' : 'aspect-[3/4]'}`}>
+                <div className={`overflow-hidden bg-surface-container-low ${isVertical ? 'aspect-[3/4] xl:h-20 xl:w-16 xl:shrink-0 xl:rounded-[0.9rem] 2xl:h-24 2xl:w-20' : 'aspect-[3/4]'}`}>
                   <img
                     src={item.image.objectUrl ?? item.image.src}
                     alt={item.image.name}
@@ -61,8 +61,8 @@ export function WorkspaceStrip({
                     referrerPolicy="no-referrer"
                   />
                 </div>
-                <div className={`space-y-1 ${isVertical ? 'px-2 py-2 xl:min-w-0 xl:flex-1 xl:py-0 xl:pl-0 xl:pr-7' : 'px-2 py-2'}`}>
-                  <div className="truncate font-headline text-[11px] font-bold tracking-[0.04em] text-primary">{item.image.name}</div>
+                <div className={`space-y-1 ${isVertical ? 'px-2 py-2 xl:min-w-0 xl:flex-1 xl:py-0 xl:pl-0 xl:pr-8' : 'px-2 py-2'}`}>
+                  <div className="truncate font-headline text-[11px] font-bold tracking-[0.04em] text-primary xl:text-xs">{item.image.name}</div>
                   <div className="truncate font-mono text-[9px] uppercase tracking-[0.16em] text-on-surface-variant">{item.exifData.resolution}</div>
                 </div>
               </button>

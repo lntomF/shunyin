@@ -4,7 +4,7 @@ export type Language = 'en' | 'zh';
 
 export type Theme = 'dark' | 'light';
 
-export type ViewType = 'import' | 'editor' | 'styles' | 'export';
+export type ViewType = 'home' | 'import' | 'editor' | 'styles' | 'export' | 'ai';
 
 export type PreviewMode = 'original' | 'processed';
 
