@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { BetaIntroModal } from './components/BetaIntroModal';
 import { SettingsPanel } from './components/SettingsPanel';
+import { AiImageView } from './components/views/AiImageView';
 import { HomeView } from './components/views/HomeView';
 import { EditorView } from './components/views/EditorView';
 import { ExportView } from './components/views/ExportView';
@@ -13,10 +14,14 @@ import { getDictionary } from './i18n/translations';
 
 export default function App() {
   const { state, actions } = useWorkspaceState();
-  const [isBetaIntroVisible, setIsBetaIntroVisible] = useState(true);
+  const [isBetaIntroVisible, setIsBetaIntroVisible] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const dict = getDictionary(state.language);
-  const activeView = state.currentView === 'styles' ? 'editor' : state.currentView;
+  const activeView = state.currentView === 'styles'
+    ? 'editor'
+    : state.currentView === 'home'
+      ? 'import'
+      : state.currentView;
   const selectedStyle = useMemo(
     () => styleTemplates.find((template) => template.id === state.selectedStyleId) ?? styleTemplates[0],
     [state.selectedStyleId],
@@ -68,7 +73,12 @@ export default function App() {
                 onImportFiles={actions.importFiles}
                 onUploadStatusChange={actions.setUploadStatus}
                 onContinueEditing={() => actions.setCurrentView('editor')}
+                onOpenAiWorkspace={() => actions.setCurrentView('ai')}
               />
+            )}
+
+            {activeView === 'ai' && (
+              <AiImageView dict={dict} />
             )}
 
             {activeView === 'editor' && state.sourceImage && state.exifData && (

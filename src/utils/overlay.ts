@@ -82,8 +82,12 @@ function buildCameraTitle(exifData: ExifData) {
 }
 
 function buildBrandLabel(exifData: ExifData, fallbackBrandName: string) {
-  const cameraTitle = buildCameraTitle(exifData);
-  const firstToken = cameraTitle.split(/\s+/)[0];
+  const cameraBody = compactValue(exifData.cameraBody);
+  if (!cameraBody) {
+    return fallbackBrandName;
+  }
+
+  const firstToken = cameraBody.split(/\s+/)[0];
   return compactValue(firstToken) ?? fallbackBrandName;
 }
 

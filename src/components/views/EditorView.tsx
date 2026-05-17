@@ -55,10 +55,10 @@ export function EditorView({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-      className="mx-auto max-w-[1440px] px-3 pb-24 pt-20 sm:px-4 sm:pb-28 sm:pt-[5.5rem] md:px-6 xl:px-8"
+      className="mx-auto min-h-[calc(100dvh-7rem)] w-full max-w-[1920px] px-3 pb-24 pt-20 sm:px-5 sm:pb-28 sm:pt-[5.5rem] lg:px-6 xl:px-8"
     >
       {/* 三列：图片队列 + EXIF | 预览 | 样式选择 */}
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[190px_minmax(0,1fr)_260px] 2xl:grid-cols-[210px_minmax(0,1fr)_280px]">
+      <section className="grid min-h-[calc(100dvh-10rem)] grid-cols-1 gap-4 xl:grid-cols-[240px_minmax(0,1fr)_320px] 2xl:grid-cols-[280px_minmax(0,1fr)_360px]">
 
         {/* 左栏：图片队列 + EXIF */}
         <aside className="space-y-3 xl:sticky xl:top-20 xl:self-start">
@@ -155,8 +155,8 @@ export function EditorView({
         </aside>
 
         {/* 中栏：预览 */}
-        <div>
-          <div className="flex h-[clamp(320px,calc(100vh-13rem),460px)] items-center justify-center overflow-hidden rounded-[1.4rem] border border-secondary/12 bg-surface-container-lowest sm:h-[clamp(360px,calc(100vh-12rem),480px)] sm:rounded-[2rem]">
+        <div className="min-h-0">
+          <div className="flex min-h-[32rem] items-center justify-center overflow-hidden rounded-[1.4rem] border border-secondary/12 bg-surface-container-lowest sm:min-h-[38rem] sm:rounded-[2rem] xl:h-[calc(100dvh-10rem)] xl:min-h-0">
             <PreviewStage
               image={sourceImage}
               exifData={exifData}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ImagePlus } from 'lucide-react';
+import { ImagePlus, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { Dictionary } from '../../i18n/translations';
 import type { Theme, UploadError, UploadStatus, WorkspaceImage } from '../../types/app';
@@ -16,6 +16,7 @@ interface HomeViewProps {
   onImportFiles: (files: File[]) => void | Promise<void>;
   onUploadStatusChange: (status: UploadStatus) => void;
   onContinueEditing: () => void;
+  onOpenAiWorkspace: () => void;
 }
 
 export function HomeView({
@@ -28,15 +29,19 @@ export function HomeView({
   onImportFiles,
   onUploadStatusChange,
   onContinueEditing,
+  onOpenAiWorkspace,
 }: HomeViewProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = 'shunyin-photo-import';
   const imageSrc = sourceImage?.objectUrl ?? sourceImage?.src;
   const headingLine1Chars = Array.from(dict.homeHeadingLine1);
   const headingLine2Chars = Array.from(dict.homeHeadingLine2);
-  const [typedLine1Length, setTypedLine1Length] = useState(0);
-  const [typedLine2Length, setTypedLine2Length] = useState(0);
-  const [typingPhase, setTypingPhase] = useState<'typing-line-1' | 'typing-line-2' | 'pause' | 'deleting-line-2' | 'deleting-line-1'>('typing-line-1');
+  const headingSeparator = /^[\x00-\x7F]+$/.test(dict.homeHeadingLine1) && /^[\x00-\x7F]+$/.test(dict.homeHeadingLine2) ? ' ' : '';
+  const headingChars = Array.from(`${dict.homeHeadingLine1}${headingSeparator}${dict.homeHeadingLine2}`);
+  const line1End = headingLine1Chars.length;
+  const line2Start = line1End + headingSeparator.length;
+  const [typedHeadingLength, setTypedHeadingLength] = useState(0);
+  const [typingPhase, setTypingPhase] = useState<'typing' | 'pause' | 'deleting'>('typing');
 
   const handleFiles = (files: FileList | File[] | null | undefined) => {
     const nextFiles = Array.from(files ?? []);
@@ -50,7 +55,6 @@ export function HomeView({
     }
   };
 
-  // 全页面拖拽支持
   useEffect(() => {
     const onDragOver = (e: DragEvent) => {
       e.preventDefault();
@@ -78,70 +82,52 @@ export function HomeView({
   }, [sourceImage?.source]);
 
   useEffect(() => {
-    setTypedLine1Length(0);
-    setTypedLine2Length(0);
-    setTypingPhase('typing-line-1');
+    setTypedHeadingLength(0);
+    setTypingPhase('typing');
   }, [dict.homeHeadingLine1, dict.homeHeadingLine2]);
 
   useEffect(() => {
     const typingDelay = 130;
     const deletingDelay = 70;
-    const linePauseDelay = 260;
     const loopPauseDelay = 1400;
 
     const timeout = window.setTimeout(() => {
       switch (typingPhase) {
-        case 'typing-line-1':
-          if (typedLine1Length < headingLine1Chars.length) {
-            setTypedLine1Length((current) => current + 1);
-            return;
-          }
-          setTypingPhase('typing-line-2');
-          return;
-        case 'typing-line-2':
-          if (typedLine2Length < headingLine2Chars.length) {
-            setTypedLine2Length((current) => current + 1);
+        case 'typing':
+          if (typedHeadingLength < headingChars.length) {
+            setTypedHeadingLength((current) => current + 1);
             return;
           }
           setTypingPhase('pause');
           return;
         case 'pause':
-          setTypingPhase('deleting-line-2');
+          setTypingPhase('deleting');
           return;
-        case 'deleting-line-2':
-          if (typedLine2Length > 0) {
-            setTypedLine2Length((current) => current - 1);
+        case 'deleting':
+          if (typedHeadingLength > 0) {
+            setTypedHeadingLength((current) => current - 1);
             return;
           }
-          setTypingPhase('deleting-line-1');
-          return;
-        case 'deleting-line-1':
-          if (typedLine1Length > 0) {
-            setTypedLine1Length((current) => current - 1);
-            return;
-          }
-          setTypingPhase('typing-line-1');
+          setTypingPhase('typing');
           return;
         default:
           return;
       }
     }, typingPhase === 'pause'
       ? loopPauseDelay
-      : typingPhase === 'typing-line-1' || typingPhase === 'typing-line-2'
-        ? (typingPhase === 'typing-line-2' && typedLine2Length === 0) || (typingPhase === 'typing-line-1' && typedLine1Length === headingLine1Chars.length)
-          ? linePauseDelay
-          : typingDelay
+      : typingPhase === 'typing'
+        ? typingDelay
         : deletingDelay);
 
     return () => {
       window.clearTimeout(timeout);
     };
-  }, [headingLine1Chars.length, headingLine2Chars.length, typedLine1Length, typedLine2Length, typingPhase]);
+  }, [headingChars.length, typedHeadingLength, typingPhase]);
 
-  const typedLine1 = headingLine1Chars.slice(0, typedLine1Length).join('');
-  const typedLine2 = headingLine2Chars.slice(0, typedLine2Length).join('');
-  const isFirstLineActive = typingPhase === 'typing-line-1' || typingPhase === 'deleting-line-1';
-  const isSecondLineActive = typingPhase === 'typing-line-2' || typingPhase === 'pause' || typingPhase === 'deleting-line-2';
+  const typedLine1 = headingChars.slice(0, Math.min(typedHeadingLength, line1End)).join('');
+  const typedSeparator = typedHeadingLength > line1End ? headingChars.slice(line1End, Math.min(typedHeadingLength, line2Start)).join('') : '';
+  const typedLine2 = typedHeadingLength > line2Start ? headingChars.slice(line2Start, typedHeadingLength).join('') : '';
+  const fullHeading = `${dict.homeHeadingLine1}${headingSeparator}${dict.homeHeadingLine2}`;
   const uploadMessage = uploadError === 'invalid_type'
     ? dict.importInvalidType
     : uploadError === 'file_too_large'
@@ -160,7 +146,7 @@ export function HomeView({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-      className="mx-auto max-w-7xl px-4 pb-28 pt-20 sm:px-6 sm:pb-32 sm:pt-24 lg:px-8"
+      className="mx-auto min-h-[calc(100dvh-7.5rem)] w-full max-w-[1920px] px-3 pb-28 pt-20 sm:px-5 sm:pb-32 sm:pt-24 lg:px-6 xl:px-8"
     >
       <input
         id={inputId}
@@ -172,53 +158,65 @@ export function HomeView({
         onChange={(event) => handleFiles(event.target.files)}
       />
 
-      {/* ── Hero Banner ───────────────────────────────────────── */}
-      <section className="hero-section relative overflow-hidden rounded-[1.4rem] border border-secondary/10 text-center shadow-[0_28px_80px_rgba(2,7,18,0.42)] sm:rounded-[2rem]">
+      <section className="hero-section relative min-h-[calc(100dvh-12rem)] overflow-hidden rounded-[1.4rem] border border-secondary/10 text-center shadow-[0_28px_80px_rgba(2,7,18,0.42)] sm:rounded-[2rem]">
         <div className="pointer-events-none absolute inset-0">
           <MatrixMorphCanvas imageSrc={imageSrc} variant="hero" theme={theme} />
         </div>
         <div className="pointer-events-none absolute inset-0 hero-overlay-accent" />
         <div className="pointer-events-none absolute inset-0 hero-overlay-gradient" />
 
-        <div className="relative px-4 py-10 sm:px-8 sm:py-14 lg:px-12 lg:py-16 xl:px-14 xl:py-18">
+        <div className="relative flex min-h-[calc(100dvh-12rem)] flex-col items-center justify-center px-4 py-10 sm:px-8 sm:py-14 lg:px-12 lg:py-16 xl:px-14 xl:py-18">
           <span className="mb-5 inline-flex items-center rounded-full border border-secondary/20 bg-secondary/10 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-secondary sm:mb-6 sm:px-4 sm:py-2">
             {dict.workspaceLabel}
           </span>
 
-          <h2 className="mx-auto mt-4 max-w-4xl font-headline text-[clamp(2.6rem,13vw,4.7rem)] font-bold leading-none tracking-[0] text-primary lg:text-[clamp(4.4rem,7vw,6.1rem)]">
-            <span className="relative block">
-              <span className="invisible">{dict.homeHeadingLine1}</span>
+          <h2 className="mx-auto mt-4 max-w-5xl whitespace-nowrap font-headline text-[clamp(2.3rem,10vw,4.3rem)] font-bold leading-none tracking-[0] text-primary sm:text-[clamp(3rem,8vw,5.6rem)] lg:text-[clamp(4rem,6vw,6rem)]">
+            <span className="relative inline-block">
+              <span className="invisible">{fullHeading}</span>
               <span className="absolute inset-0">
                 {typedLine1}
-                {isFirstLineActive && (
-                  <span className="ml-[0.05em] inline-block h-[0.88em] w-[0.08em] translate-y-[0.08em] animate-pulse bg-current align-baseline" />
-                )}
-              </span>
-            </span>
-            <span className="relative block text-secondary">
-              <span className="invisible">{dict.homeHeadingLine2}</span>
-              <span className="absolute inset-0">
-                {typedLine2}
-                {isSecondLineActive && (
-                  <span className="ml-[0.05em] inline-block h-[0.88em] w-[0.08em] translate-y-[0.08em] animate-pulse bg-current align-baseline" />
-                )}
+                {typedSeparator}
+                <span className="text-secondary">{typedLine2}</span>
+                <span className="ml-[0.05em] inline-block h-[0.88em] w-[0.08em] translate-y-[0.08em] animate-pulse bg-current align-baseline" />
               </span>
             </span>
           </h2>
 
-          <p className="mx-auto mt-6 max-w-xl text-sm leading-7 text-on-surface-variant sm:text-base sm:leading-8">
+          <p className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-on-surface-variant sm:text-base sm:leading-8">
             {dict.heroDesc}
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:mt-10 sm:gap-4">
-            <label
-              htmlFor={inputId}
-              className="group flex cursor-pointer items-center gap-3 rounded-[1.1rem] border border-secondary/25 bg-primary px-5 py-3 text-surface shadow-md shutter-transition hover:-translate-y-0.5 hover:opacity-90 active:scale-[0.98] sm:rounded-[1.35rem] sm:px-7 sm:py-4"
+          <div className="mt-7 grid w-full max-w-4xl gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={onOpenAiWorkspace}
+              className="console-panel group flex items-center justify-between gap-4 rounded-[1.15rem] p-4 text-left shutter-transition hover:-translate-y-0.5 hover:border-tertiary/30 sm:rounded-[1.35rem] sm:p-5"
             >
-              <ImagePlus size={18} className="group-hover:translate-x-0.5 shutter-transition" />
-              <span className="font-headline text-sm font-bold uppercase tracking-widest">{dict.btnImport}</span>
-            </label>
+              <span>
+                <span className="block text-[10px] font-bold uppercase tracking-[0.22em] text-tertiary">{dict.aiFeatureBadge}</span>
+                <span className="mt-2 block font-headline text-lg font-bold text-primary">{dict.aiFeatureTitle}</span>
+              </span>
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[0.95rem] border border-tertiary/20 bg-tertiary/10 text-tertiary">
+                <Sparkles size={19} />
+              </span>
+            </button>
 
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="console-panel group flex items-center justify-between gap-4 rounded-[1.15rem] p-4 text-left shutter-transition hover:-translate-y-0.5 hover:border-secondary/30 sm:rounded-[1.35rem] sm:p-5"
+            >
+              <span>
+                <span className="block text-[10px] font-bold uppercase tracking-[0.22em] text-secondary">{dict.watermarkFeatureBadge}</span>
+                <span className="mt-2 block font-headline text-lg font-bold text-primary">{dict.watermarkFeatureTitle}</span>
+              </span>
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[0.95rem] border border-secondary/20 bg-secondary/10 text-secondary">
+                <ImagePlus size={19} />
+              </span>
+            </button>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
             {workspaceCount > 0 && (
               <button
                 type="button"

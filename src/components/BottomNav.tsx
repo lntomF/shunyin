@@ -1,4 +1,4 @@
-import { Camera, Share, SlidersHorizontal } from 'lucide-react';
+import { Camera, ImagePlus, Share, SlidersHorizontal, Sparkles } from 'lucide-react';
 import type { Dictionary } from '../i18n/translations';
 import type { ViewType } from '../types/app';
 
@@ -10,7 +10,8 @@ interface BottomNavProps {
 
 export function BottomNav({ currentView, setCurrentView, dict }: BottomNavProps) {
   const navItems: Array<{ id: ViewType; icon: typeof Camera; label: string }> = [
-    { id: 'import', icon: Camera, label: dict.navImport },
+    { id: 'import', icon: ImagePlus, label: dict.navImport },
+    { id: 'ai', icon: Sparkles, label: dict.navAi },
     { id: 'editor', icon: SlidersHorizontal, label: dict.navEditor },
     { id: 'export', icon: Share, label: dict.navExport },
   ];
@@ -20,7 +21,7 @@ export function BottomNav({ currentView, setCurrentView, dict }: BottomNavProps)
   return (
     <nav className="fixed bottom-0 left-0 w-full z-50">
       <div className="bottom-nav-shell bg-surface-container-low/90 backdrop-blur-xl border-t border-outline-variant/20">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-around px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1.5 sm:px-4 sm:pb-4 sm:pt-2">
+        <div className="mx-auto flex w-full max-w-[1920px] items-center justify-around px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1.5 sm:px-4 sm:pb-4 sm:pt-2 xl:px-8">
           {navItems.map(({ id, icon: Icon, label }) => {
             const isActive = activeView === id;
             return (

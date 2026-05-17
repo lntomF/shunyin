@@ -268,7 +268,7 @@ export function createInitialState(): WorkspaceState {
 
     return {
       ...baseState,
-      currentView: parsed.currentView ?? baseState.currentView,
+      currentView: parsed.currentView === 'home' ? 'import' : (parsed.currentView ?? baseState.currentView),
       language,
       theme,
       previewMode: parsed.previewMode ?? baseState.previewMode,

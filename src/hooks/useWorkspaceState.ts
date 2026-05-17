@@ -127,6 +127,13 @@ export function useWorkspaceState() {
   }, []);
 
   const removeImage = useCallback((imageId: string) => {
+    const objectUrl = objectUrlsRef.current.get(imageId);
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+      objectUrlsRef.current.delete(imageId);
+    }
+
+    missingLocalImageIdsRef.current.delete(imageId);
     dispatch({ type: 'remove_image', imageId });
   }, []);
 
