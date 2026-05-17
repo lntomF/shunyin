@@ -7,7 +7,7 @@ import {
   sendNodeJson,
   sendNodeOptions,
   normalizeModels,
-  readNodeJsonBody,
+  // readNodeJsonBody, // ❌ 注释掉或删除这个本地用的解析函数
   createProviderFailureBody,
   type OpenAIModelsResponse,
 } from '../_openaiRelay';
@@ -24,8 +24,13 @@ export default async function handler(request: any, response: any) {
   }
 
   try {
-    const body = await readNodeJsonBody(request);
+    // ✅ 关键修改：Vercel 已经自动解析了 JSON，直接安全读取 request.body 即可
+    const body = typeof request.body === 'string' 
+      ? JSON.parse(request.body) 
+      : (request.body || {});
+
     const { apiKey } = getProviderConfig(body);
+    
     const providerResponse = await fetch(endpointUrl('/models'), {
       method: 'GET',
       headers: getAuthHeaders(apiKey),
@@ -44,6 +49,10 @@ export default async function handler(request: any, response: any) {
       baseUrl: DEFAULT_OPENAI_BASE_URL,
     });
   } catch (error) {
-    sendNodeJson(response, getServerErrorBody(error, 'Model request failed.'), error instanceof SyntaxError ? 400 : 500);
+    sendNodeJson(
+      response, 
+      getServerErrorBody(error, 'Model request failed.'), 
+      error instanceof SyntaxError ? 400 : 500
+    );
   }
 }
