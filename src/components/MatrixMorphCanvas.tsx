@@ -183,8 +183,12 @@ export function MatrixMorphCanvas({ imageSrc, variant = 'strip', theme = 'dark' 
       const startX = width * (isHero ? 0.05 : 0.04);
       const startY = height * (isHero ? 0.14 : 0.16);
       const gradient = context.createLinearGradient(startX, 0, boundaryX, 0);
-      gradient.addColorStop(0, isHero ? 'rgba(144, 140, 171, 0.56)' : 'rgba(144, 140, 171, 0.82)');
-      gradient.addColorStop(0.82, isHero ? 'rgba(144, 140, 171, 0.24)' : 'rgba(144, 140, 171, 0.34)');
+      gradient.addColorStop(0, theme === 'light'
+        ? (isHero ? 'rgba(47, 100, 116, 0.46)' : 'rgba(47, 100, 116, 0.68)')
+        : (isHero ? 'rgba(144, 140, 171, 0.56)' : 'rgba(144, 140, 171, 0.82)'));
+      gradient.addColorStop(0.82, theme === 'light'
+        ? (isHero ? 'rgba(47, 100, 116, 0.22)' : 'rgba(47, 100, 116, 0.32)')
+        : (isHero ? 'rgba(144, 140, 171, 0.24)' : 'rgba(144, 140, 171, 0.34)'));
       gradient.addColorStop(1, 'rgba(144, 140, 171, 0)');
 
       context.save();
@@ -216,7 +220,11 @@ export function MatrixMorphCanvas({ imageSrc, variant = 'strip', theme = 'dark' 
         const alpha = local < 0.5 ? local * 1.8 : (1 - local) * 1.9;
 
         context.globalAlpha = alpha * (isHero ? 0.7 : 1);
-        context.fillStyle = index % 5 === 0
+        context.fillStyle = theme === 'light'
+          ? (index % 5 === 0
+            ? (isHero ? 'rgba(154, 86, 54, 0.46)' : 'rgba(154, 86, 54, 0.72)')
+            : (isHero ? 'rgba(47, 100, 116, 0.42)' : 'rgba(47, 100, 116, 0.72)'))
+          : index % 5 === 0
           ? (isHero ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.95)')
           : (isHero ? 'rgba(203,191,255,0.58)' : 'rgba(203,191,255,0.9)');
         context.fillRect(x, particle.y, particle.size, particle.size);
@@ -233,7 +241,7 @@ export function MatrixMorphCanvas({ imageSrc, variant = 'strip', theme = 'dark' 
       context.save();
 
       context.fillStyle = theme === 'light'
-        ? (isHero ? 'rgba(200, 220, 248, 0.28)' : 'rgba(200, 220, 248, 0.92)')
+        ? (isHero ? 'rgba(223, 231, 226, 0.32)' : 'rgba(223, 231, 226, 0.92)')
         : (isHero ? 'rgba(5, 9, 19, 0.28)' : 'rgba(5, 9, 19, 0.92)');
       context.fillRect(imageRect.x, imageRect.y, imageRect.width, imageRect.height);
 
@@ -255,10 +263,12 @@ export function MatrixMorphCanvas({ imageSrc, variant = 'strip', theme = 'dark' 
         const imageAlpha = smoothstep(0.26, 0.88, local);
 
         context.save();
-        context.strokeStyle = isHero ? 'rgba(121,216,255,0.14)' : 'rgba(121,216,255,0.12)';
+        context.strokeStyle = theme === 'light'
+          ? (isHero ? 'rgba(47,100,116,0.16)' : 'rgba(47,100,116,0.14)')
+          : (isHero ? 'rgba(121,216,255,0.14)' : 'rgba(121,216,255,0.12)');
         context.lineWidth = 1;
         context.fillStyle = theme === 'light'
-          ? (isHero ? 'rgba(200,220,255,0.26)' : 'rgba(200,220,255,0.88)')
+          ? (isHero ? 'rgba(255,255,255,0.34)' : 'rgba(255,255,255,0.86)')
           : (isHero ? 'rgba(12,18,33,0.26)' : 'rgba(12,18,33,0.88)');
         context.fillRect(currentX, currentY, fragment.tw, fragment.th);
         context.strokeRect(currentX + 0.5, currentY + 0.5, fragment.tw - 1, fragment.th - 1);
@@ -266,7 +276,7 @@ export function MatrixMorphCanvas({ imageSrc, variant = 'strip', theme = 'dark' 
         if (charAlpha > 0.02) {
           context.globalAlpha = charAlpha * (isHero ? 0.46 : 1);
           context.fillStyle = theme === 'light'
-            ? (isHero ? 'rgba(0,100,200,0.48)' : 'rgba(0,100,200,0.82)')
+            ? (isHero ? 'rgba(47,100,116,0.52)' : 'rgba(47,100,116,0.84)')
             : (isHero ? 'rgba(121,216,255,0.48)' : 'rgba(121,216,255,0.82)');
           context.font = `600 ${isHero ? 10 : 9}px "IBM Plex Mono", monospace`;
           context.textAlign = 'center';
@@ -315,7 +325,7 @@ export function MatrixMorphCanvas({ imageSrc, variant = 'strip', theme = 'dark' 
       context.restore();
 
       context.strokeStyle = theme === 'light'
-        ? (isHero ? 'rgba(0,100,200,0.18)' : 'rgba(0,100,200,0.16)')
+        ? (isHero ? 'rgba(47,100,116,0.2)' : 'rgba(47,100,116,0.18)')
         : (isHero ? 'rgba(121,216,255,0.18)' : 'rgba(121,216,255,0.16)');
       context.strokeRect(imageRect.x + 0.5, imageRect.y + 0.5, imageRect.width - 1, imageRect.height - 1);
       context.restore();
@@ -331,13 +341,13 @@ export function MatrixMorphCanvas({ imageSrc, variant = 'strip', theme = 'dark' 
       const bg = context.createLinearGradient(0, 0, width, 0);
       if (theme === 'light') {
         if (variant === 'hero') {
-          bg.addColorStop(0, '#dceeff');
-          bg.addColorStop(0.5, '#d4e8ff');
-          bg.addColorStop(1, '#cce0ff');
+          bg.addColorStop(0, '#f8f8f4');
+          bg.addColorStop(0.5, '#eef2ee');
+          bg.addColorStop(1, '#dfe7e2');
         } else {
-          bg.addColorStop(0, '#e8f2ff');
-          bg.addColorStop(0.5, '#e0ecff');
-          bg.addColorStop(1, '#e8f2ff');
+          bg.addColorStop(0, '#fbfbf7');
+          bg.addColorStop(0.5, '#edf1ed');
+          bg.addColorStop(1, '#f4f6f2');
         }
       } else if (variant === 'hero') {
         bg.addColorStop(0, '#07101d');

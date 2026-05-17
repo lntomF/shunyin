@@ -66,7 +66,7 @@ export function WorkspaceStrip({
                   <div className="truncate font-mono text-[9px] uppercase tracking-[0.16em] text-on-surface-variant">{item.exifData.resolution}</div>
                 </div>
               </button>
-              {onDeleteItem && items.length > 1 && (
+              {onDeleteItem && (
                 <button
                   type="button"
                   onClick={() => onDeleteItem(item.id)}
