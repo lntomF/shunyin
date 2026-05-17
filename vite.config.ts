@@ -296,14 +296,13 @@ function serializeImageJob(job: ImageGenerationJob) {
 }
 
 function createOpenAiImagePlugin(env: Record<string, string>): Plugin {
-  const fallbackApiKey = env.OPENAI_API_KEY;
   const baseUrl = DEFAULT_OPENAI_BASE_URL;
   const fallbackModel = env.OPENAI_IMAGE_MODEL || DEFAULT_IMAGE_MODEL;
   const organization = env.OPENAI_ORGANIZATION;
   const project = env.OPENAI_PROJECT;
 
   const readProviderConfig = (body: ImageGenerationRequest | ModelsRequest) => {
-    const apiKey = asTrimmedString(body.apiKey) || fallbackApiKey;
+    const apiKey = asTrimmedString(body.apiKey);
 
     if (!apiKey) {
       throw new Error('missing_openai_api_key');
