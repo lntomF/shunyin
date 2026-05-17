@@ -115,6 +115,21 @@ export function optionsResponse() {
   });
 }
 
+export function sendNodeJson(response: any, body: unknown, status = 200) {
+  response.statusCode = status;
+  response.setHeader('Content-Type', 'application/json; charset=utf-8');
+  response.setHeader('Cache-Control', 'no-store');
+  response.end(JSON.stringify(redactSensitiveBody(body)));
+}
+
+export function sendNodeOptions(response: any) {
+  response.statusCode = 204;
+  response.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  response.setHeader('Cache-Control', 'no-store');
+  response.end();
+}
+
 export async function readJsonBody(request: Request) {
   const text = await request.text();
   if (!text.trim()) {
@@ -122,6 +137,29 @@ export async function readJsonBody(request: Request) {
   }
 
   return JSON.parse(text) as Record<string, unknown>;
+}
+
+export async function readNodeJsonBody(request: any) {
+  const requestBody = request.body;
+  if (requestBody && typeof requestBody === 'object' && !Buffer.isBuffer(requestBody)) {
+    return requestBody as Record<string, unknown>;
+  }
+
+  if (typeof requestBody === 'string') {
+    return requestBody.trim() ? JSON.parse(requestBody) as Record<string, unknown> : {};
+  }
+
+  if (Buffer.isBuffer(requestBody)) {
+    const text = requestBody.toString('utf8');
+    return text.trim() ? JSON.parse(text) as Record<string, unknown> : {};
+  }
+
+  let raw = '';
+  for await (const chunk of request) {
+    raw += chunk;
+  }
+
+  return raw.trim() ? JSON.parse(raw) as Record<string, unknown> : {};
 }
 
 export function asTrimmedString(value: unknown) {

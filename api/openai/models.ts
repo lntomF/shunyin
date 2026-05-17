@@ -4,45 +4,46 @@ import {
   getAuthHeaders,
   getProviderConfig,
   getServerErrorBody,
-  jsonResponse,
+  sendNodeJson,
+  sendNodeOptions,
   normalizeModels,
-  optionsResponse,
-  readJsonBody,
+  readNodeJsonBody,
   createProviderFailureBody,
   type OpenAIModelsResponse,
 } from '../_openaiRelay';
 
-async function handleRequest(request: Request) {
-  if (request.method === 'OPTIONS') return optionsResponse();
+export default async function handler(request: any, response: any) {
+  if (request.method === 'OPTIONS') {
+    sendNodeOptions(response);
+    return;
+  }
 
   if (request.method !== 'POST') {
-    return jsonResponse({ error: 'method_not_allowed' }, 405);
+    sendNodeJson(response, { error: 'method_not_allowed' }, 405);
+    return;
   }
 
   try {
-    const body = await readJsonBody(request);
+    const body = await readNodeJsonBody(request);
     const { apiKey } = getProviderConfig(body);
-    const response = await fetch(endpointUrl('/models'), {
+    const providerResponse = await fetch(endpointUrl('/models'), {
       method: 'GET',
       headers: getAuthHeaders(apiKey),
     });
 
-    const responseBody = await response.json().catch(() => null) as OpenAIModelsResponse | null;
+    const responseBody = await providerResponse.json().catch(() => null) as OpenAIModelsResponse | null;
 
-    if (!response.ok) {
-      const failure = createProviderFailureBody(response.status, responseBody);
-      return jsonResponse(failure, response.status);
+    if (!providerResponse.ok) {
+      const failure = createProviderFailureBody(providerResponse.status, responseBody, apiKey);
+      sendNodeJson(response, failure, providerResponse.status);
+      return;
     }
 
-    return jsonResponse({
+    sendNodeJson(response, {
       ...normalizeModels(responseBody),
       baseUrl: DEFAULT_OPENAI_BASE_URL,
     });
   } catch (error) {
-    return jsonResponse(getServerErrorBody(error, 'Model request failed.'), error instanceof SyntaxError ? 400 : 500);
+    sendNodeJson(response, getServerErrorBody(error, 'Model request failed.'), error instanceof SyntaxError ? 400 : 500);
   }
 }
-
-export default {
-  fetch: handleRequest,
-};
