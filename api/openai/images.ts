@@ -4,7 +4,7 @@ import {
   createImageRequestPayload,
   getProviderConfig,
   requestGeneratedImage,
-} from '../_openaiRelay';
+} from '../_openaiRelay.js';
 
 // ⚠️ 极其重要：保留 Vercel Serverless 超时配置，防止生图慢导致 504
 export const maxDuration = 60;

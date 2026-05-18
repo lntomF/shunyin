@@ -10,7 +10,7 @@ import {
   // readNodeJsonBody, // ❌ 注释掉或删除这个本地用的解析函数
   createProviderFailureBody,
   type OpenAIModelsResponse,
-} from '../_openaiRelay';
+} from '../_openaiRelay.js';
 
 export default async function handler(request: any, response: any) {
   if (request.method === 'OPTIONS') {
