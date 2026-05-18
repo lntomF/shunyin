@@ -1,9 +1,14 @@
 import { createElement, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { FilmBorderTemplate } from '../components/watermark/FilmBorderTemplate';
+import { GradientOverlayTemplate } from '../components/watermark/GradientOverlayTemplate';
 import { MagazineCoverTemplate } from '../components/watermark/MagazineCoverTemplate';
+import { MinimalBlackFrameTemplate } from '../components/watermark/MinimalBlackFrameTemplate';
 import { MinimalWhiteFooterTemplate } from '../components/watermark/MinimalWhiteFooterTemplate';
+import { PolaroidStyleTemplate } from '../components/watermark/PolaroidStyleTemplate';
+import { PortraitGalleryCardTemplate } from '../components/watermark/PortraitGalleryCardTemplate';
 import type { WatermarkSvgProps } from '../components/watermark/types';
+import { WhiteFooterBrandTemplate } from '../components/watermark/WhiteFooterBrandTemplate';
 import type { ExifData, StyleTemplate, WorkspaceImage } from '../types/app';
 import { resolveImageDataUrl } from './image';
 
@@ -26,6 +31,11 @@ const WATERMARK_RENDERERS: Record<StyleTemplate['styleType'], (props: WatermarkS
   'minimal-white-footer': MinimalWhiteFooterTemplate,
   'magazine-cover': MagazineCoverTemplate,
   'film-border': FilmBorderTemplate,
+  'portrait-gallery-card': PortraitGalleryCardTemplate,
+  'white-footer-brand': WhiteFooterBrandTemplate,
+  'gradient-overlay': GradientOverlayTemplate,
+  'minimal-black-frame': MinimalBlackFrameTemplate,
+  'polaroid-style': PolaroidStyleTemplate,
 };
 
 function compactValue(value: string) {
@@ -202,6 +212,30 @@ export function getRenderedOverlaySize(styleTemplate: StyleTemplate, sourceWidth
         height: sourceHeight + footerHeight,
       };
     }
+    case 'gradient-overlay':
+      return {
+        width: sourceWidth,
+        height: sourceHeight,
+      };
+    case 'minimal-black-frame': {
+      const minEdge = Math.min(sourceWidth, sourceHeight);
+      const frame = clamp(Math.round(minEdge * 0.052), 28, getScaledMax(84, layoutScale));
+      const footer = clamp(Math.round(minEdge * 0.11), 74, getScaledMax(160, layoutScale));
+      return {
+        width: sourceWidth + frame * 2,
+        height: sourceHeight + frame + footer,
+      };
+    }
+    case 'polaroid-style': {
+      const minEdge = Math.min(sourceWidth, sourceHeight);
+      const side = clamp(Math.round(minEdge * 0.06), 34, getScaledMax(86, layoutScale));
+      const top = clamp(Math.round(minEdge * 0.06), 34, getScaledMax(86, layoutScale));
+      const bottom = clamp(Math.round(minEdge * 0.22), 126, getScaledMax(280, layoutScale));
+      return {
+        width: sourceWidth + side * 2,
+        height: sourceHeight + top + bottom,
+      };
+    }
     default:
       return { width: sourceWidth, height: sourceHeight };
   }
@@ -246,4 +280,3 @@ export async function buildOverlaySvg(options: OverlayOptions) {
 export async function createOverlayDataUrl(options: OverlayOptions) {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(await buildOverlaySvg(options))}`;
 }
-
