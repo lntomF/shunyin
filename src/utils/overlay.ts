@@ -1,13 +1,8 @@
 import { createElement, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { FilmBorderTemplate } from '../components/watermark/FilmBorderTemplate';
-import { GradientOverlayTemplate } from '../components/watermark/GradientOverlayTemplate';
 import { MagazineCoverTemplate } from '../components/watermark/MagazineCoverTemplate';
-import { MinimalBlackFrameTemplate } from '../components/watermark/MinimalBlackFrameTemplate';
 import { MinimalWhiteFooterTemplate } from '../components/watermark/MinimalWhiteFooterTemplate';
-import { PolaroidTemplate } from '../components/watermark/PolaroidTemplate';
-import { PortraitGalleryCardTemplate } from '../components/watermark/PortraitGalleryCardTemplate';
-import { WhiteFooterBrandTemplate } from '../components/watermark/WhiteFooterBrandTemplate';
 import type { WatermarkSvgProps } from '../components/watermark/types';
 import type { ExifData, StyleTemplate, WorkspaceImage } from '../types/app';
 import { resolveImageDataUrl } from './image';
@@ -31,11 +26,6 @@ const WATERMARK_RENDERERS: Record<StyleTemplate['styleType'], (props: WatermarkS
   'minimal-white-footer': MinimalWhiteFooterTemplate,
   'magazine-cover': MagazineCoverTemplate,
   'film-border': FilmBorderTemplate,
-  'portrait-gallery-card': PortraitGalleryCardTemplate,
-  'white-footer-brand': WhiteFooterBrandTemplate,
-  'gradient-overlay': GradientOverlayTemplate,
-  'minimal-black-frame': MinimalBlackFrameTemplate,
-  'polaroid': PolaroidTemplate,
 };
 
 function compactValue(value: string) {

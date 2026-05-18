@@ -69,7 +69,8 @@ export function PreviewStage({
             setOverlaySrc(nextOverlaySrc);
           }
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error('水印渲染失败:', error);
           if (active && renderSerialRef.current === renderSerial) {
             setOverlaySrc(null);
           }
