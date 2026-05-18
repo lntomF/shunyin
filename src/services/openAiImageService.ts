@@ -15,6 +15,15 @@ interface GenerateOpenAiImageOptions {
   quality: GeneratedImageQuality;
 }
 
+interface EditOpenAiImageOptions {
+  apiKey: string;
+  model: string;
+  prompt: string;
+  image: File;
+  aspectRatio: GeneratedImageAspectRatio;
+  quality: GeneratedImageQuality;
+}
+
 interface FetchOpenAiModelsOptions {
   apiKey: string;
 }
@@ -251,6 +260,53 @@ export async function createOpenAiImageJob({
   }
 
   return requireJob(body, 'Image job creation failed.');
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function createOpenAiImageEditJob({
+  apiKey,
+  model,
+  prompt,
+  image,
+  aspectRatio,
+  quality,
+}: EditOpenAiImageOptions): Promise<OpenAiImageJob> {
+  const imageBase64 = await fileToBase64(image);
+
+  const response = await fetch('/api/openai/images/edit', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      apiKey,
+      model,
+      prompt,
+      image: imageBase64,
+      size: DEFAULT_IMAGE_SIZE,
+      aspectRatio,
+      quality,
+    }),
+  });
+
+  const body = await response.json().catch(() => null) as CreateOpenAiImageJobResponse | null;
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(body, 'Image edit job creation failed.'));
+  }
+
+  return requireJob(body, 'Image edit job creation failed.');
 }
 
 export async function fetchOpenAiImageJob(jobId: string): Promise<OpenAiImageJob> {

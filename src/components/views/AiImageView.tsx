@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, Expand, KeyRound, RefreshCw, Sparkles, X } from 'lucide-react';
+import { Download, Expand, KeyRound, RefreshCw, Sparkles, Upload, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { Dictionary } from '../../i18n/translations';
 import {
   createOpenAiImageJob,
+  createOpenAiImageEditJob,
   fetchOpenAiImageJob,
   fetchOpenAiModels,
   openAiImageJobToGeneratedImage,
@@ -20,6 +21,7 @@ interface AiImageViewProps {
 }
 
 type AiJobStatus = 'idle' | 'loading' | 'done' | 'error';
+type AiMode = 'generate' | 'edit';
 
 interface AiImageResult {
   file: File;
@@ -70,6 +72,9 @@ export function AiImageView({ dict }: AiImageViewProps) {
   const [autoFetchKey, setAutoFetchKey] = useState('');
   const [modelStatus, setModelStatus] = useState<AiJobStatus>('idle');
   const [modelError, setModelError] = useState<string | null>(null);
+  const [mode, setMode] = useState<AiMode>('generate');
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [prompt, setPrompt] = useState('');
   const [resultImage, setResultImage] = useState<AiImageResult | null>(null);
   const [aspectRatio, setAspectRatio] = useState<GeneratedImageAspectRatio>('auto');
@@ -94,6 +99,12 @@ export function AiImageView({ dict }: AiImageViewProps) {
   useEffect(() => () => {
     revokeResult(resultImage);
   }, [resultImage]);
+
+  useEffect(() => () => {
+    if (uploadedImageUrl) {
+      URL.revokeObjectURL(uploadedImageUrl);
+    }
+  }, [uploadedImageUrl]);
 
   const displayModels = useMemo(() => normalizeModelList(models), [models]);
   const trimmedModel = model.trim();
@@ -209,8 +220,34 @@ export function AiImageView({ dict }: AiImageViewProps) {
     });
   };
 
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setGenerateError(dict.aiUploadFailed);
+      return;
+    }
+
+    if (uploadedImageUrl) {
+      URL.revokeObjectURL(uploadedImageUrl);
+    }
+
+    setUploadedImage(file);
+    setUploadedImageUrl(URL.createObjectURL(file));
+    setGenerateStatus('idle');
+    setGenerateError(null);
+  };
+
   const handleGenerate = async () => {
     if (!prompt.trim() || !canRun || generateStatus === 'loading') {
+      return;
+    }
+
+    if (mode === 'edit' && !uploadedImage) {
+      setGenerateError(dict.aiUploadImageHint);
       return;
     }
 
@@ -220,13 +257,22 @@ export function AiImageView({ dict }: AiImageViewProps) {
     setActiveJob(null);
 
     try {
-      const job = await createOpenAiImageJob({
-        apiKey: apiKey.trim(),
-        model: model.trim(),
-        prompt: prompt.trim(),
-        aspectRatio,
-        quality,
-      });
+      const job = mode === 'edit' && uploadedImage
+        ? await createOpenAiImageEditJob({
+            apiKey: apiKey.trim(),
+            model: model.trim(),
+            prompt: prompt.trim(),
+            image: uploadedImage,
+            aspectRatio,
+            quality,
+          })
+        : await createOpenAiImageJob({
+            apiKey: apiKey.trim(),
+            model: model.trim(),
+            prompt: prompt.trim(),
+            aspectRatio,
+            quality,
+          });
 
       if (job.status === 'succeeded') {
         const generated = openAiImageJobToGeneratedImage(job);
@@ -452,7 +498,88 @@ export function AiImageView({ dict }: AiImageViewProps) {
         </div>
 
         <div className="console-panel flex min-h-[22rem] flex-col rounded-[1.25rem] p-4 sm:rounded-[1.5rem] sm:p-5 lg:p-6">
-          <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em] text-tertiary">{dict.aiTextToImageTitle}</div>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-tertiary">
+              {mode === 'generate' ? dict.aiTextToImageTitle : dict.aiImageToImageTitle}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setMode('generate')}
+                className={`rounded-[0.7rem] px-3 py-1.5 text-xs font-bold shutter-transition ${
+                  mode === 'generate'
+                    ? 'bg-tertiary/15 text-tertiary'
+                    : 'bg-surface/50 text-on-surface-variant hover:bg-surface/70'
+                }`}
+              >
+                {dict.aiModeGenerate}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('edit')}
+                className={`rounded-[0.7rem] px-3 py-1.5 text-xs font-bold shutter-transition ${
+                  mode === 'edit'
+                    ? 'bg-tertiary/15 text-tertiary'
+                    : 'bg-surface/50 text-on-surface-variant hover:bg-surface/70'
+                }`}
+              >
+                {dict.aiModeEdit}
+              </button>
+            </div>
+          </div>
+
+          {mode === 'edit' && (
+            <div className="mb-4">
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+                <div>
+                  <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">
+                    {dict.aiUploadImageLabel}
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <label
+                      htmlFor="image-upload"
+                      className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-[0.75rem] border border-secondary/20 bg-surface/70 px-3.5 text-xs font-bold text-primary shutter-transition hover:border-tertiary/35"
+                    >
+                      <Upload size={13} />
+                      <span>{dict.aiUploadImageBtn}</span>
+                    </label>
+                    {resultImage && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUploadedImage(resultImage.file);
+                          setUploadedImageUrl(resultImage.objectUrl);
+                          setGenerateStatus('idle');
+                          setGenerateError(null);
+                        }}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-[0.75rem] border border-tertiary/20 bg-tertiary/10 px-3.5 text-xs font-bold text-tertiary shutter-transition hover:bg-tertiary/15"
+                      >
+                        <Sparkles size={13} />
+                        <span>{dict.aiUseGeneratedImage}</span>
+                      </button>
+                    )}
+                    {uploadedImage && (
+                      <span className="max-w-[16rem] truncate text-xs text-on-surface-variant">{uploadedImage.name}</span>
+                    )}
+                  </div>
+                  <p className="mt-1.5 text-xs leading-5 text-on-surface-variant">{dict.aiUploadImageHint}</p>
+                </div>
+                {uploadedImageUrl && (
+                  <div className="overflow-hidden rounded-[0.75rem] border border-outline-variant/15 lg:w-28">
+                    <img src={uploadedImageUrl} alt="Upload preview" className="h-20 w-full object-cover lg:h-full lg:w-28" />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <textarea
             value={prompt}
             onChange={(event) => {
@@ -462,8 +589,8 @@ export function AiImageView({ dict }: AiImageViewProps) {
                 setGenerateError(null);
               }
             }}
-            placeholder={dict.aiPromptPlaceholder}
-            className="min-h-[13rem] flex-1 resize-none rounded-[0.95rem] border border-secondary/10 bg-surface/70 px-4 py-4 text-base leading-7 text-primary outline-none shutter-transition placeholder:text-outline focus:border-tertiary/35"
+            placeholder={mode === 'edit' ? dict.aiEditPromptPlaceholder : dict.aiPromptPlaceholder}
+            className="min-h-[10rem] flex-1 resize-none rounded-[0.95rem] border border-secondary/10 bg-surface/70 px-4 py-3.5 text-base leading-7 text-primary outline-none shutter-transition placeholder:text-outline focus:border-tertiary/35"
           />
           <div className="mt-4 grid gap-3 md:grid-cols-[auto_minmax(12rem,1fr)] md:items-end">
             <label className="block">

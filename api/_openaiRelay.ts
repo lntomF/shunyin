@@ -3,6 +3,9 @@ import { randomUUID } from 'node:crypto';
 export const DEFAULT_OPENAI_BASE_URL = 'https://api.shunyin.eu.cc/v1';
 export const DEFAULT_IMAGE_MODEL = 'gpt-image-1.5';
 export const DEFAULT_IMAGE_SIZE = '1024x1024';
+export const MAX_RETRY_ATTEMPTS = 3;
+export const INITIAL_RETRY_DELAY = 1000; // 1秒
+export const REQUEST_TIMEOUT = 90000; // 90秒
 
 const ALLOWED_IMAGE_QUALITIES = new Set(['low', 'medium', 'high', 'auto']);
 const ALLOWED_ASPECT_RATIOS = new Set(['auto', '1:1', '16:9', '9:16', '4:3', '3:4']);
@@ -224,6 +227,57 @@ export function isProviderTimeout(status: number, message: string) {
   return status === 524 || /status_code\s*=\s*524|bad response status code 524|timeout|timed out/i.test(message);
 }
 
+export function shouldRetry(status: number, attempt: number): boolean {
+  if (attempt >= MAX_RETRY_ATTEMPTS) return false;
+  // 可重试的状态码：408 请求超时, 429 限流, 500+ 服务器错误, 524 超时
+  return status === 408 || status === 429 || status === 524 || (status >= 500 && status < 600);
+}
+
+export async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export function calculateBackoff(attempt: number): number {
+  // 指数退避：1s, 2s, 4s
+  return INITIAL_RETRY_DELAY * Math.pow(2, attempt);
+}
+
+async function retryWithBackoff<T>(
+  operation: (attempt: number) => Promise<T>,
+  maxAttempts: number,
+): Promise<T> {
+  let lastError: any;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await operation(attempt);
+    } catch (error: any) {
+      lastError = error;
+
+      // 如果不可重试或已达最大重试次数，直接抛出
+      if (!error.retryable || attempt === maxAttempts - 1) {
+        break;
+      }
+
+      // 计算退避时间并等待
+      const backoffMs = calculateBackoff(attempt);
+      await sleep(backoffMs);
+    }
+  }
+
+  // 所有重试都失败，返回最终错误
+  const status = lastError?.status || 500;
+  return {
+    ok: false as const,
+    status,
+    failure: {
+      error: status === 524 ? 'provider_timeout' : 'openai_request_failed',
+      message: lastError?.message || 'Request failed after multiple retries.',
+      statusCode: status,
+    },
+  } as T;
+}
+
 export function createProviderFailureBody(status: number, responseBody: unknown, apiKey?: string): ProviderFailureBody {
   const message = getOpenAiErrorMessage(responseBody);
   const safeMessage = redactSensitiveText(message, apiKey);
@@ -334,6 +388,38 @@ export function createImageRequestPayload(body: Record<string, unknown>) {
   return { model, prompt, payload };
 }
 
+export function createImageEditRequestPayload(body: Record<string, unknown>) {
+  const model = asTrimmedString(body.model) || DEFAULT_IMAGE_MODEL;
+  const prompt = asTrimmedString(body.prompt);
+  const image = asTrimmedString(body.image);
+
+  if (!prompt) {
+    throw new Error('missing_prompt');
+  }
+
+  if (!image) {
+    throw new Error('missing_image');
+  }
+
+  const aspectRatio = asAllowedValue(body.aspectRatio, ALLOWED_ASPECT_RATIOS, 'auto');
+  const quality = asAllowedValue(body.quality, ALLOWED_IMAGE_QUALITIES, 'medium');
+  const payload: Record<string, string | number> = {
+    model,
+    prompt,
+    image,
+    n: 1,
+    size: DEFAULT_IMAGE_SIZE,
+    quality,
+    output_format: 'png',
+  };
+
+  if (aspectRatio !== 'auto') {
+    payload.aspect_ratio = aspectRatio;
+  }
+
+  return { model, prompt, payload };
+}
+
 export async function requestGeneratedImage({
   apiKey,
   model,
@@ -345,11 +431,51 @@ export async function requestGeneratedImage({
   prompt: string;
   payload: Record<string, string | number>;
 }) {
-  const response = await fetch(endpointUrl('/images/generations'), {
-    method: 'POST',
-    headers: getAuthHeaders(apiKey),
-    body: JSON.stringify(payload),
-  });
+  return await retryWithBackoff(async (attempt) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+    try {
+      const response = await fetch(endpointUrl('/images/generations'), {
+        method: 'POST',
+        headers: getAuthHeaders(apiKey),
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const result = await handleImageResponse(response, apiKey, model, prompt);
+
+      // 如果失败且可重试，抛出错误触发重试
+      if (!result.ok && shouldRetry(result.status, attempt)) {
+        const error = new Error(result.failure.message) as any;
+        error.status = result.status;
+        error.retryable = true;
+        throw error;
+      }
+
+      return result;
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        const timeoutError = new Error('Request timed out after 90 seconds') as any;
+        timeoutError.status = 524;
+        timeoutError.retryable = shouldRetry(524, attempt);
+        throw timeoutError;
+      }
+
+      throw error;
+    }
+  }, MAX_RETRY_ATTEMPTS);
+}
+
+async function handleImageResponse(
+  response: Response,
+  apiKey: string,
+  model: string,
+  prompt: string,
+) {
 
   const responseBody = await response.json().catch(() => null) as OpenAIImageResponse | null;
 
@@ -398,6 +524,55 @@ export async function requestGeneratedImage({
     },
     prompt,
   };
+}
+
+export async function requestEditedImage({
+  apiKey,
+  model,
+  prompt,
+  payload,
+}: {
+  apiKey: string;
+  model: string;
+  prompt: string;
+  payload: Record<string, string | number>;
+}) {
+  return await retryWithBackoff(async (attempt) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+    try {
+      const response = await fetch(endpointUrl('/images/edits'), {
+        method: 'POST',
+        headers: getAuthHeaders(apiKey),
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const result = await handleImageResponse(response, apiKey, model, prompt);
+
+      if (!result.ok && shouldRetry(result.status, attempt)) {
+        const error = new Error(result.failure.message) as any;
+        error.status = result.status;
+        error.retryable = true;
+        throw error;
+      }
+
+      return result;
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        const timeoutError = new Error('Request timed out after 90 seconds') as any;
+        timeoutError.status = 524;
+        timeoutError.retryable = shouldRetry(524, attempt);
+        throw timeoutError;
+      }
+
+      throw error;
+    }
+  }, MAX_RETRY_ATTEMPTS);
 }
 
 export function createCompletedJob({
