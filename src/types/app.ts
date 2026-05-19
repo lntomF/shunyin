@@ -38,7 +38,15 @@ export interface StyleTemplate {
   id: string;
   titleKey: TranslationKey;
   descriptionKey: TranslationKey;
-  styleType: 'minimal-white-footer' | 'magazine-cover' | 'film-border' | 'portrait-gallery-card' | 'white-footer-brand';
+  styleType:
+    | 'minimal-white-footer'
+    | 'magazine-cover'
+    | 'film-border'
+    | 'portrait-gallery-card'
+    | 'white-footer-brand'
+    | 'gradient-overlay'
+    | 'minimal-black-frame'
+    | 'polaroid-style';
 }
 
 export interface ExportSettings {

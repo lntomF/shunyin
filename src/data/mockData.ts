@@ -52,4 +52,22 @@ export const styleTemplates: StyleTemplate[] = [
     descriptionKey: 'tpl5Desc',
     styleType: 'white-footer-brand',
   },
+  {
+    id: 'gradient-overlay',
+    titleKey: 'tpl6Title',
+    descriptionKey: 'tpl6Desc',
+    styleType: 'gradient-overlay',
+  },
+  {
+    id: 'minimal-black-frame',
+    titleKey: 'tpl7Title',
+    descriptionKey: 'tpl7Desc',
+    styleType: 'minimal-black-frame',
+  },
+  {
+    id: 'polaroid-style',
+    titleKey: 'tpl8Title',
+    descriptionKey: 'tpl8Desc',
+    styleType: 'polaroid-style',
+  },
 ];

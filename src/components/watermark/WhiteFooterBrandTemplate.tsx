@@ -5,14 +5,25 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function truncateText(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `${value.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
+}
+
+function maxChars(width: number, fontSize: number) {
+  return Math.max(8, Math.floor(width / (fontSize * 0.56)));
+}
+
 export function WhiteFooterBrandTemplate({
   width,
   height,
   image,
   imageHref,
   cameraTitle,
-  brandLabel,
-  captureTimeText,
+  brandName,
   lensModel,
   parameterLine,
 }: WatermarkSvgProps) {
@@ -26,101 +37,98 @@ export function WhiteFooterBrandTemplate({
     clamp(Math.round(isPortrait ? sourceWidth * 0.16 : sourceHeight * 0.12), isPortrait ? 104 : 76, scaledMax(isPortrait ? 210 : 132)),
   );
   const photoHeight = height - footerHeight;
-  const paddingX = clamp(Math.round(width * 0.04), 22, scaledMax(52));
-  const topLineY = photoHeight - 1.5;
-  const dividerOneX = width * 0.315;
-  const dividerTwoX = width * 0.735;
-  const dividerTop = photoHeight + footerHeight * 0.24;
-  const dividerHeight = footerHeight * 0.52;
-  const brandFontSize = isPortrait
-    ? clamp(Math.round(sourceHeight * 0.04), 66, scaledMax(170))
-    : clamp(Math.round(width * 0.048), 34, scaledMax(72));
-  const leftTitleSize = isPortrait
-    ? clamp(Math.round(sourceHeight * 0.017), 28, scaledMax(72))
-    : clamp(Math.round(width * 0.014), 13, scaledMax(22));
-  const leftMetaSize = isPortrait
-    ? clamp(Math.round(sourceHeight * 0.012), 20, scaledMax(50))
-    : clamp(Math.round(width * 0.0088), 9, scaledMax(13));
-  const rightMainSize = isPortrait
-    ? clamp(Math.round(sourceHeight * 0.014), 24, scaledMax(60))
-    : clamp(Math.round(width * 0.012), 12, scaledMax(19));
-  const rightSubSize = isPortrait
-    ? clamp(Math.round(sourceHeight * 0.011), 18, scaledMax(46))
-    : clamp(Math.round(width * 0.0085), 8, scaledMax(12));
-  const leftBlockY = photoHeight + footerHeight * 0.4;
-  const brandY = photoHeight + footerHeight * 0.58;
-  const rightBlockY = photoHeight + footerHeight * 0.4;
-  const leftMetaY = leftBlockY + leftMetaSize + clamp(Math.round(footerHeight * 0.1), 7, scaledMax(12));
-  const rightSubY = rightBlockY + rightSubSize + clamp(Math.round(footerHeight * 0.1), 7, scaledMax(12));
+  const paddingX = clamp(Math.round(width * 0.052), 28, scaledMax(74));
+  const labelSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.01), 15, scaledMax(40))
+    : clamp(Math.round(width * 0.0076), 8, scaledMax(12));
+  const brandSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.028), 38, scaledMax(112))
+    : clamp(Math.round(width * 0.025), 20, scaledMax(40));
+  const metaSize = isPortrait
+    ? clamp(Math.round(sourceHeight * 0.015), 22, scaledMax(62))
+    : clamp(Math.round(width * 0.011), 10, scaledMax(17));
+  const brandText = truncateText(brandName, maxChars(width * 0.32, brandSize));
+  const cameraText = truncateText(cameraTitle, maxChars(width * 0.28, metaSize));
+  const lensText = lensModel ? truncateText(lensModel, maxChars(width * 0.28, metaSize)) : null;
+  const parameterText = truncateText(parameterLine, maxChars(width * 0.25, metaSize));
+  const footerTop = photoHeight;
+  const centerY = footerTop + footerHeight * 0.56;
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width={width} height={height} fill="#080808" />
+      <rect width={width} height={height} fill="#FFFFFF" />
       <image href={imageHref} x={0} y={0} width={width} height={photoHeight} preserveAspectRatio="none" />
-      <rect x={0} y={photoHeight} width={width} height={footerHeight} fill="#F7F6F2" />
-      <rect x={0} y={topLineY} width={width} height={1.5} fill="#111111" fillOpacity="0.22" />
-      <rect x={dividerOneX} y={dividerTop} width={1.2} height={dividerHeight} fill="#D9D4CB" />
-      <rect x={dividerTwoX} y={dividerTop} width={1.2} height={dividerHeight} fill="#D9D4CB" />
+      <rect x={0} y={photoHeight - Math.max(2, layoutScale)} width={width} height={Math.max(2, layoutScale)} fill="#FFFFFF" />
+      <rect x={0} y={footerTop} width={width} height={footerHeight} fill="#FFFFFF" />
 
       <text
         x={paddingX}
-        y={leftBlockY}
-        fill="#181818"
-        fontSize={leftTitleSize}
+        y={footerTop + footerHeight * 0.36}
+        fill="#9B9B9B"
+        fontSize={labelSize}
         fontFamily="Inter, Arial, sans-serif"
-        fontWeight="700"
+        fontWeight="760"
+        letterSpacing="0.18em"
       >
-        {cameraTitle}
+        CAMERA
       </text>
-      {lensModel && (
+      <text
+        x={paddingX}
+        y={centerY}
+        fill="#171717"
+        fontSize={metaSize}
+        fontFamily="Inter, Arial, sans-serif"
+        fontWeight="760"
+      >
+        {cameraText}
+      </text>
+      {lensText && (
         <text
           x={paddingX}
-          y={leftMetaY}
-          fill="#8B8B8B"
-          fontSize={leftMetaSize}
+          y={footerTop + footerHeight * 0.76}
+          fill="#666666"
+          fontSize={metaSize}
           fontFamily="Inter, Arial, sans-serif"
-          fontWeight="500"
+          fontWeight="560"
         >
-          {lensModel}
+          {lensText}
         </text>
       )}
 
       <text
-        x={width * 0.53}
-        y={brandY}
-        fill="#CF1010"
-        fontSize={brandFontSize}
+        x={width / 2}
+        y={footerTop + footerHeight * 0.64}
+        fill="#111111"
+        fontSize={brandSize}
         fontFamily="Georgia, Times New Roman, serif"
         fontWeight="700"
-        fontStyle="italic"
-        letterSpacing="-0.03em"
         textAnchor="middle"
       >
-        {brandLabel}
+        {brandText}
       </text>
 
       <text
         x={width - paddingX}
-        y={rightBlockY}
-        fill="#181818"
-        fontSize={rightMainSize}
+        y={footerTop + footerHeight * 0.36}
+        fill="#9B9B9B"
+        fontSize={labelSize}
         fontFamily="Inter, Arial, sans-serif"
-        fontWeight="700"
-        letterSpacing="0.01em"
+        fontWeight="760"
+        letterSpacing="0.18em"
         textAnchor="end"
       >
-        {parameterLine}
+        EXPOSURE
       </text>
       <text
         x={width - paddingX}
-        y={rightSubY}
-        fill="#8B8B8B"
-        fontSize={rightSubSize}
+        y={centerY}
+        fill="#171717"
+        fontSize={metaSize}
         fontFamily="Inter, Arial, sans-serif"
-        fontWeight="500"
+        fontWeight="780"
         textAnchor="end"
       >
-        {captureTimeText}
+        {parameterText}
       </text>
     </svg>
   );
