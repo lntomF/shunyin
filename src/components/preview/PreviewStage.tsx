@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import type { ExifData, PreviewMode, StyleTemplate, WorkspaceImage } from '../../types/app';
 import { createOverlayDataUrl, getRenderedOverlaySize } from '../../utils/overlay';
 
@@ -86,10 +87,14 @@ export function PreviewStage({
   if (previewMode === 'processed') {
     return (
       <div className={`relative overflow-hidden ${className}`} style={{ aspectRatio: `${renderedSize.width} / ${renderedSize.height}` }}>
-        <img
+        <motion.img
+          key={`${renderContext}:${overlaySrc ? 'overlay' : 'source'}`}
+          initial={{ opacity: 0, scale: 0.985, filter: 'blur(10px)' }}
+          animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+          transition={{ duration: 0.46, ease: [0.16, 1, 0.3, 1] }}
           src={overlaySrc ?? (image.objectUrl ?? image.src)}
           alt={alt}
-          className={`h-full w-full object-contain transition-transform duration-700 ${imageClassName} ${overlayClassName}`}
+          className={`h-full w-full object-contain shadow-[0_28px_80px_rgba(0,0,0,0.32)] transition-transform duration-700 ${imageClassName} ${overlayClassName}`}
           referrerPolicy="no-referrer"
         />
       </div>
@@ -98,10 +103,14 @@ export function PreviewStage({
 
   return (
     <div className={`relative overflow-hidden ${className}`} style={{ aspectRatio: `${width} / ${height}` }}>
-      <img
+      <motion.img
+        key={`${image.id}:${image.objectUrl ?? image.src}:original`}
+        initial={{ opacity: 0, scale: 0.985, filter: 'blur(10px)' }}
+        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+        transition={{ duration: 0.46, ease: [0.16, 1, 0.3, 1] }}
         src={image.objectUrl ?? image.src}
         alt={alt}
-        className={`h-full w-full object-cover transition-transform duration-700 opacity-100 ${imageClassName}`}
+        className={`h-full w-full object-cover opacity-100 shadow-[0_28px_80px_rgba(0,0,0,0.32)] transition-transform duration-700 ${imageClassName}`}
         referrerPolicy="no-referrer"
       />
     </div>

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Download, Expand, KeyRound, RefreshCw, Sparkles, Upload, X } from 'lucide-react';
-import { motion } from 'motion/react';
 import type { Dictionary } from '../../i18n/translations';
 import {
   createOpenAiImageJob,
@@ -396,16 +395,12 @@ export function AiImageView({ dict }: AiImageViewProps) {
         : dict.aiGenerateHint;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-      className="mx-auto grid min-h-[calc(100dvh-8rem)] w-full max-w-[1920px] gap-4 px-3 pb-28 pt-20 sm:px-5 sm:pb-32 sm:pt-24 lg:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.82fr)] lg:px-6 xl:px-8"
+    <div
+      className="mx-auto grid min-h-[calc(100dvh-8rem)] w-full max-w-[1920px] gap-3 px-3 pb-28 pt-20 sm:px-5 sm:pb-32 sm:pt-24 lg:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.82fr)] lg:gap-4 lg:px-6 xl:px-8"
     >
-      <section className="grid min-h-0 gap-4">
-        <div className="console-panel relative overflow-hidden rounded-[1.25rem] p-4 sm:rounded-[1.5rem] sm:p-5 lg:p-6">
-          <div className="console-grid pointer-events-none absolute inset-0 opacity-18" />
+      <section className="grid min-h-0 gap-3 lg:gap-4">
+        <div className="relative overflow-hidden rounded-2xl p-4 sm:p-5 lg:p-6">
+          <div className="studio-grid pointer-events-none absolute inset-0 opacity-20" />
           <div className="relative flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="max-w-3xl">
               <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-tertiary">{dict.aiGenerateTitle}</div>
@@ -423,14 +418,14 @@ export function AiImageView({ dict }: AiImageViewProps) {
                 {dict.aiGenerateDescSuffix}
               </p>
             </div>
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] border border-tertiary/20 bg-tertiary/10 text-tertiary">
+            <div className="preview-glow flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-tertiary/20 bg-tertiary/10 text-tertiary shadow-[0_0_34px_rgba(156,255,213,0.14)]">
               <Sparkles size={20} />
             </div>
           </div>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <div className="console-panel rounded-[1.25rem] p-4 sm:rounded-[1.5rem] sm:p-5">
+        <div className="flow-surface grid overflow-hidden rounded-2xl xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <div className="p-4 sm:p-5">
             <label className="block">
               <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">{dict.aiApiKeyLabel}</span>
               <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
@@ -440,7 +435,7 @@ export function AiImageView({ dict }: AiImageViewProps) {
                     value={apiKey}
                     onChange={(event) => handleApiKeyChange(event.target.value)}
                     placeholder={dict.aiApiKeyPlaceholder}
-                    className="h-11 w-full rounded-[0.8rem] border border-secondary/10 bg-surface/70 px-3 pr-9 text-sm text-primary outline-none shutter-transition placeholder:text-outline focus:border-tertiary/35"
+                    className="command-input h-11 w-full rounded-xl border border-secondary/10 px-3 pr-9 text-sm text-primary outline-none shutter-transition placeholder:text-outline focus:border-tertiary/40 focus:shadow-[0_0_0_3px_rgba(156,255,213,0.08)]"
                   />
                   <KeyRound size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-outline" />
                 </div>
@@ -448,7 +443,7 @@ export function AiImageView({ dict }: AiImageViewProps) {
                   type="button"
                   onClick={handleClearApiKey}
                   disabled={!apiKey}
-                  className="h-11 rounded-[0.8rem] border border-outline-variant/15 bg-surface/55 px-4 text-xs font-bold text-on-surface-variant shutter-transition hover:border-tertiary/25 hover:text-tertiary disabled:cursor-not-allowed disabled:opacity-45"
+                  className="h-11 rounded-xl border border-outline-variant/15 bg-surface/55 px-4 text-xs font-bold text-on-surface-variant shutter-transition hover:border-tertiary/25 hover:text-tertiary disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   {dict.aiClearApiKey}
                 </button>
@@ -457,14 +452,14 @@ export function AiImageView({ dict }: AiImageViewProps) {
             </label>
           </div>
 
-          <div className="console-panel rounded-[1.25rem] p-4 sm:rounded-[1.5rem] sm:p-5">
+          <div className="rail-divider border-t p-4 sm:p-5 xl:border-l xl:border-t-0">
             <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
               <label className="block min-w-0">
                 <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">{dict.aiModelLabel}</span>
                 <select
                   value={trimmedModel}
                   onChange={(event) => handleModelChange(event.target.value)}
-                  className="h-11 w-full rounded-[0.8rem] border border-secondary/10 bg-surface/70 px-3 text-sm text-primary outline-none shutter-transition focus:border-tertiary/35"
+                  className="command-input h-11 w-full rounded-xl border border-secondary/10 px-3 text-sm text-primary outline-none shutter-transition focus:border-tertiary/40 focus:shadow-[0_0_0_3px_rgba(156,255,213,0.08)]"
                 >
                   {!trimmedModel && <option value="">{dict.aiModelPlaceholder}</option>}
                   {trimmedModel && !selectedModelInList && <option value={trimmedModel}>{trimmedModel}</option>}
@@ -478,7 +473,7 @@ export function AiImageView({ dict }: AiImageViewProps) {
                 type="button"
                 onClick={() => void handleFetchModels()}
                 disabled={!apiKey.trim() || modelStatus === 'loading'}
-                className="inline-flex h-11 items-center justify-center gap-2 self-end rounded-[0.8rem] border border-tertiary/20 bg-tertiary/10 px-4 text-xs font-bold text-tertiary shutter-transition hover:bg-tertiary/15 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
+                className="inline-flex h-11 items-center justify-center gap-2 self-end rounded-xl border border-tertiary/20 bg-tertiary/10 px-4 text-xs font-bold text-tertiary shutter-transition hover:-translate-y-0.5 hover:bg-tertiary/15 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
               >
                 <RefreshCw size={14} className={modelStatus === 'loading' ? 'animate-spin' : ''} />
                 <span>{modelStatus === 'loading' ? dict.aiModelsLoading : dict.aiModelsFetch}</span>
@@ -490,14 +485,14 @@ export function AiImageView({ dict }: AiImageViewProps) {
               value={model}
               onChange={(event) => handleModelChange(event.target.value)}
               placeholder={dict.aiModelPlaceholder}
-              className="mt-2 h-11 w-full rounded-[0.8rem] border border-secondary/10 bg-surface/70 px-3 text-sm text-primary outline-none shutter-transition placeholder:text-outline focus:border-tertiary/35"
+              className="command-input mt-2 h-11 w-full rounded-xl border border-secondary/10 px-3 text-sm text-primary outline-none shutter-transition placeholder:text-outline focus:border-tertiary/40 focus:shadow-[0_0_0_3px_rgba(156,255,213,0.08)]"
             />
 
             <div className="mt-2 min-h-5 text-xs leading-5 text-on-surface-variant">{modelStatusText}</div>
           </div>
         </div>
 
-        <div className="console-panel flex min-h-[22rem] flex-col rounded-[1.25rem] p-4 sm:rounded-[1.5rem] sm:p-5 lg:p-6">
+        <div className="flow-surface flex min-h-[22rem] flex-col rounded-2xl p-4 sm:p-5 lg:p-6">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-tertiary">
               {mode === 'generate' ? dict.aiTextToImageTitle : dict.aiImageToImageTitle}
@@ -506,9 +501,9 @@ export function AiImageView({ dict }: AiImageViewProps) {
               <button
                 type="button"
                 onClick={() => setMode('generate')}
-                className={`rounded-[0.7rem] px-3 py-1.5 text-xs font-bold shutter-transition ${
+                className={`rounded-xl px-3 py-1.5 text-xs font-bold shutter-transition ${
                   mode === 'generate'
-                    ? 'bg-tertiary/15 text-tertiary'
+                    ? 'bg-tertiary/15 text-tertiary shadow-[0_0_24px_rgba(156,255,213,0.1)]'
                     : 'bg-surface/50 text-on-surface-variant hover:bg-surface/70'
                 }`}
               >
@@ -517,9 +512,9 @@ export function AiImageView({ dict }: AiImageViewProps) {
               <button
                 type="button"
                 onClick={() => setMode('edit')}
-                className={`rounded-[0.7rem] px-3 py-1.5 text-xs font-bold shutter-transition ${
+                className={`rounded-xl px-3 py-1.5 text-xs font-bold shutter-transition ${
                   mode === 'edit'
-                    ? 'bg-tertiary/15 text-tertiary'
+                    ? 'bg-tertiary/15 text-tertiary shadow-[0_0_24px_rgba(156,255,213,0.1)]'
                     : 'bg-surface/50 text-on-surface-variant hover:bg-surface/70'
                 }`}
               >
@@ -545,7 +540,7 @@ export function AiImageView({ dict }: AiImageViewProps) {
                     />
                     <label
                       htmlFor="image-upload"
-                      className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-[0.75rem] border border-secondary/20 bg-surface/70 px-3.5 text-xs font-bold text-primary shutter-transition hover:border-tertiary/35"
+                      className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-secondary/20 bg-surface/70 px-3.5 text-xs font-bold text-primary shutter-transition hover:-translate-y-0.5 hover:border-tertiary/35"
                     >
                       <Upload size={13} />
                       <span>{dict.aiUploadImageBtn}</span>
@@ -559,7 +554,7 @@ export function AiImageView({ dict }: AiImageViewProps) {
                           setGenerateStatus('idle');
                           setGenerateError(null);
                         }}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-[0.75rem] border border-tertiary/20 bg-tertiary/10 px-3.5 text-xs font-bold text-tertiary shutter-transition hover:bg-tertiary/15"
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-tertiary/20 bg-tertiary/10 px-3.5 text-xs font-bold text-tertiary shutter-transition hover:-translate-y-0.5 hover:bg-tertiary/15"
                       >
                         <Sparkles size={13} />
                         <span>{dict.aiUseGeneratedImage}</span>
@@ -572,7 +567,7 @@ export function AiImageView({ dict }: AiImageViewProps) {
                   <p className="mt-1.5 text-xs leading-5 text-on-surface-variant">{dict.aiUploadImageHint}</p>
                 </div>
                 {uploadedImageUrl && (
-                  <div className="overflow-hidden rounded-[0.75rem] border border-outline-variant/15 lg:w-28">
+                  <div className="overflow-hidden rounded-xl border border-outline-variant/15 lg:w-28">
                     <img src={uploadedImageUrl} alt="Upload preview" className="h-20 w-full object-cover lg:h-full lg:w-28" />
                   </div>
                 )}
@@ -590,7 +585,7 @@ export function AiImageView({ dict }: AiImageViewProps) {
               }
             }}
             placeholder={mode === 'edit' ? dict.aiEditPromptPlaceholder : dict.aiPromptPlaceholder}
-            className="min-h-[10rem] flex-1 resize-none rounded-[0.95rem] border border-secondary/10 bg-surface/70 px-4 py-3.5 text-base leading-7 text-primary outline-none shutter-transition placeholder:text-outline focus:border-tertiary/35"
+            className="command-input min-h-[10rem] flex-1 resize-none rounded-2xl border border-secondary/10 px-4 py-3.5 text-base leading-7 text-primary outline-none shutter-transition placeholder:text-outline focus:border-tertiary/40 focus:shadow-[0_0_0_3px_rgba(156,255,213,0.08)]"
           />
           <div className="mt-4 grid gap-3 md:grid-cols-[auto_minmax(12rem,1fr)] md:items-end">
             <label className="block">
@@ -598,7 +593,7 @@ export function AiImageView({ dict }: AiImageViewProps) {
               <select
                 value={aspectRatio}
                 onChange={(event) => setAspectRatio(event.target.value as GeneratedImageAspectRatio)}
-                className="h-12 min-w-36 rounded-[0.8rem] border border-secondary/10 bg-surface/70 px-3 text-sm text-primary outline-none shutter-transition focus:border-tertiary/35"
+                className="command-input h-12 min-w-36 rounded-xl border border-secondary/10 px-3 text-sm text-primary outline-none shutter-transition focus:border-tertiary/40 focus:shadow-[0_0_0_3px_rgba(156,255,213,0.08)]"
               >
                 <option value="auto">{dict.aiRatioAuto}</option>
                 <option value="1:1">{dict.aiRatio1x1}</option>
@@ -612,7 +607,7 @@ export function AiImageView({ dict }: AiImageViewProps) {
               type="button"
               onClick={handleGenerate}
               disabled={!prompt.trim() || !canRun || generateStatus === 'loading'}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-tertiary/20 bg-tertiary px-5 font-headline text-sm font-bold uppercase tracking-[0.16em] text-background shutter-transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
+              className="studio-sheen inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-tertiary/20 bg-tertiary px-5 font-headline text-sm font-bold uppercase tracking-[0.16em] text-background shadow-[0_16px_42px_rgba(156,255,213,0.14)] shutter-transition hover:-translate-y-0.5 hover:opacity-95 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
             >
               <Sparkles size={17} />
               <span>{generateStatus === 'loading' ? dict.aiGenerating : dict.aiGenerateBtn}</span>
@@ -622,7 +617,8 @@ export function AiImageView({ dict }: AiImageViewProps) {
         </div>
       </section>
 
-      <section className="console-panel flex min-h-[34rem] flex-col rounded-[1.25rem] p-4 sm:rounded-[1.5rem] sm:p-5 lg:min-h-0 lg:p-6">
+      <section className="stage-shell relative flex min-h-[34rem] flex-col overflow-hidden rounded-2xl p-4 sm:p-5 lg:min-h-0 lg:p-6">
+        <div className="stage-vignette pointer-events-none absolute inset-0" />
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-tertiary">{dict.aiResultTitle}</div>
@@ -635,7 +631,7 @@ export function AiImageView({ dict }: AiImageViewProps) {
               <button
                 type="button"
                 onClick={() => setIsPreviewOpen(true)}
-                className="flex h-10 w-10 items-center justify-center rounded-[0.85rem] border border-tertiary/20 bg-tertiary/10 text-tertiary shutter-transition hover:bg-tertiary/15"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-tertiary/20 bg-tertiary/10 text-tertiary shutter-transition hover:-translate-y-0.5 hover:bg-tertiary/15"
                 aria-label={dict.aiPreviewLarge}
                 title={dict.aiPreviewLarge}
               >
@@ -644,7 +640,7 @@ export function AiImageView({ dict }: AiImageViewProps) {
               <button
                 type="button"
                 onClick={handleDownload}
-                className="flex h-10 w-10 items-center justify-center rounded-[0.85rem] border border-secondary/20 bg-secondary/10 text-secondary shutter-transition hover:bg-secondary/15"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-secondary/20 bg-secondary/10 text-secondary shutter-transition hover:-translate-y-0.5 hover:bg-secondary/15"
                 aria-label={dict.aiDownloadResult}
                 title={dict.aiDownloadResult}
               >
@@ -654,7 +650,7 @@ export function AiImageView({ dict }: AiImageViewProps) {
           )}
         </div>
 
-        <div className="flex min-h-[24rem] flex-1 items-center justify-center overflow-hidden rounded-[1.1rem] border border-outline-variant/15 bg-surface-container-lowest">
+        <div className="relative flex min-h-[24rem] flex-1 items-center justify-center overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface-container-lowest/72">
           {resultImage ? (
             <img src={resultImage.objectUrl} alt={resultImage.prompt} className="h-full max-h-[calc(100dvh-15rem)] w-full object-contain" />
           ) : (
@@ -664,11 +660,11 @@ export function AiImageView({ dict }: AiImageViewProps) {
       </section>
 
       {isPreviewOpen && resultImage && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-background/92 p-4 backdrop-blur-xl">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-background/92 p-4 backdrop-blur-2xl">
           <button
             type="button"
             onClick={() => setIsPreviewOpen(false)}
-            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/20 bg-surface/80 text-primary shutter-transition hover:border-tertiary/30 hover:text-tertiary"
+            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-xl border border-outline-variant/20 bg-surface/80 text-primary shutter-transition hover:border-tertiary/30 hover:text-tertiary"
             aria-label="Close"
           >
             <X size={18} />
@@ -676,10 +672,10 @@ export function AiImageView({ dict }: AiImageViewProps) {
           <img
             src={resultImage.objectUrl}
             alt={resultImage.prompt}
-            className="max-h-[88vh] max-w-[92vw] rounded-[1rem] object-contain shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+            className="max-h-[88vh] max-w-[92vw] rounded-2xl object-contain shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
           />
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
