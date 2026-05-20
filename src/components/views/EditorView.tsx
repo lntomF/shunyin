@@ -1,5 +1,4 @@
 import { CheckCircle2, Circle, Palette, Pen, Sparkles } from 'lucide-react';
-import { motion } from 'motion/react';
 import { WorkspaceStrip } from '../WorkspaceStrip';
 import { PreviewStage } from '../preview/PreviewStage';
 import type { Dictionary } from '../../i18n/translations';
@@ -50,18 +49,14 @@ export function EditorView({
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
+    <div
       className="mx-auto min-h-[calc(100dvh-7rem)] w-full max-w-[1920px] px-3 pb-24 pt-20 sm:px-5 sm:pb-28 sm:pt-[5.5rem] lg:px-6 xl:px-8"
     >
       {/* 三列：图片队列 + EXIF | 预览 | 样式选择 */}
-      <section className="grid min-h-[calc(100dvh-10rem)] grid-cols-1 gap-4 xl:grid-cols-[240px_minmax(0,1fr)_320px] 2xl:grid-cols-[280px_minmax(0,1fr)_360px]">
+      <section className="grid min-h-[calc(100dvh-10rem)] grid-cols-1 gap-3 xl:grid-cols-[250px_minmax(0,1fr)_330px] xl:gap-4 2xl:grid-cols-[290px_minmax(0,1fr)_370px]">
 
         {/* 左栏：图片队列 + EXIF */}
-        <aside className="space-y-3 xl:sticky xl:top-20 xl:self-start">
+        <aside className="space-y-2 xl:sticky xl:top-20 xl:self-start">
           <WorkspaceStrip
             title={dict.imageQueueTitle}
             items={workspaceItems}
@@ -74,11 +69,10 @@ export function EditorView({
           />
 
           {/* EXIF 紧凑面板 */}
-          <div className="console-panel relative overflow-hidden rounded-[1.35rem] p-3 sm:rounded-[1.6rem] sm:p-4">
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/60 to-transparent" />
+          <div className="flow-surface relative overflow-hidden rounded-2xl p-3 sm:p-4">
             <div className="mb-3 flex items-center justify-between">
               <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-secondary">{dict.exifTitle}</div>
-              <Sparkles className="text-secondary/40" size={14} strokeWidth={1} />
+              <Sparkles className="preview-glow text-secondary/55" size={14} strokeWidth={1} />
             </div>
 
             <div className="space-y-2.5">
@@ -89,7 +83,7 @@ export function EditorView({
                     type="text"
                     value={exifData.cameraBody}
                     onChange={(event) => onExifChange('cameraBody', event.target.value)}
-                    className="w-full rounded-[0.75rem] border border-secondary/10 bg-surface/70 px-3 py-2 text-xs font-headline tracking-[0.04em] text-primary outline-none shutter-transition focus:border-secondary/30"
+                    className="command-input w-full rounded-xl border border-secondary/10 px-3 py-2 text-xs font-headline tracking-[0.04em] text-primary outline-none shutter-transition focus:border-secondary/40 focus:shadow-[0_0_0_3px_rgba(139,223,255,0.08)]"
                   />
                   <Pen size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline" />
                 </div>
@@ -104,7 +98,7 @@ export function EditorView({
                       value={exifData.watermarkTitle ?? ''}
                       placeholder={dict.brandName}
                       onChange={(event) => onExifChange('watermarkTitle', event.target.value)}
-                      className="w-full rounded-[0.75rem] border border-secondary/10 bg-surface/70 px-3 py-2 text-xs font-headline tracking-[0.04em] text-primary outline-none shutter-transition focus:border-secondary/30"
+                      className="command-input w-full rounded-xl border border-secondary/10 px-3 py-2 text-xs font-headline tracking-[0.04em] text-primary outline-none shutter-transition focus:border-secondary/40 focus:shadow-[0_0_0_3px_rgba(139,223,255,0.08)]"
                     />
                     <Pen size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline" />
                   </div>
@@ -118,7 +112,7 @@ export function EditorView({
                     type="text"
                     value={exifData.lens}
                     onChange={(event) => onExifChange('lens', event.target.value)}
-                    className="w-full rounded-[0.75rem] border border-secondary/10 bg-surface/70 px-3 py-2 text-xs font-headline tracking-[0.04em] text-primary outline-none shutter-transition focus:border-secondary/30"
+                    className="command-input w-full rounded-xl border border-secondary/10 px-3 py-2 text-xs font-headline tracking-[0.04em] text-primary outline-none shutter-transition focus:border-secondary/40 focus:shadow-[0_0_0_3px_rgba(139,223,255,0.08)]"
                   />
                   <Pen size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline" />
                 </div>
@@ -136,13 +130,13 @@ export function EditorView({
                       type="text"
                       value={exifData[key]}
                       onChange={(event) => onExifChange(key, event.target.value)}
-                      className="w-full rounded-[0.75rem] border border-secondary/10 bg-surface/70 px-2 py-2 text-center text-xs font-mono tracking-[0.04em] text-primary outline-none shutter-transition focus:border-secondary/30"
+                      className="command-input w-full rounded-xl border border-secondary/10 px-2 py-2 text-center text-xs font-mono tracking-[0.04em] text-primary outline-none shutter-transition focus:border-secondary/40 focus:shadow-[0_0_0_3px_rgba(139,223,255,0.08)]"
                     />
                   </div>
                 ))}
               </div>
 
-              <div className="border-t border-outline-variant/10 pt-2.5 space-y-1.5">
+              <div className="rail-divider border-t pt-2.5 space-y-1.5">
                 {metadataCards.map((item) => (
                   <div key={item.label} className="flex items-center justify-between gap-2">
                     <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-on-surface-variant">{item.label}</span>
@@ -156,7 +150,10 @@ export function EditorView({
 
         {/* 中栏：预览 */}
         <div className="min-h-0">
-          <div className="flex min-h-[32rem] items-center justify-center overflow-hidden rounded-[1.4rem] border border-secondary/12 bg-surface-container-lowest sm:min-h-[38rem] sm:rounded-[2rem] xl:h-[calc(100dvh-10rem)] xl:min-h-0">
+          <div className="stage-shell relative flex min-h-[32rem] items-center justify-center overflow-hidden rounded-2xl sm:min-h-[38rem] sm:rounded-3xl xl:h-[calc(100dvh-10rem)] xl:min-h-0">
+            <div className="stage-vignette pointer-events-none absolute inset-0" />
+            <div className="studio-grid pointer-events-none absolute inset-0 opacity-25" />
+            <div className="preview-glow pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-secondary/70 to-transparent" />
             <PreviewStage
               image={sourceImage}
               exifData={exifData}
@@ -165,21 +162,20 @@ export function EditorView({
               brandName={dict.brandName}
               previewMode={previewMode}
               alt={sourceImage.name}
-              className="h-full w-auto"
+              className="relative z-10 h-full w-auto"
             />
           </div>
         </div>
 
         {/* 右栏：样式选择 + 导出按钮 */}
-        <aside className="space-y-3 xl:sticky xl:top-20 xl:self-start">
-          <div className="console-panel relative overflow-hidden rounded-[1.35rem] p-4 sm:rounded-[1.9rem] sm:p-5">
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/60 to-transparent" />
+        <aside className="space-y-2 xl:sticky xl:top-20 xl:self-start">
+          <div className="flow-surface relative overflow-hidden rounded-2xl p-4 sm:p-5">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-secondary">{dict.watermarkStyle}</div>
-                <h3 className="mt-1.5 font-headline text-base font-bold tracking-[-0.03em] text-primary">{selectedStyleTitle}</h3>
+                <h3 className="mt-1.5 font-headline text-base font-bold tracking-[0] text-primary">{selectedStyleTitle}</h3>
               </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-[0.85rem] border border-secondary/15 bg-surface/70 text-secondary">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-secondary/15 bg-surface/70 text-secondary shadow-[0_0_26px_rgba(139,223,255,0.12)]">
                 <Palette size={15} />
               </div>
             </div>
@@ -192,10 +188,10 @@ export function EditorView({
                     key={template.id}
                     type="button"
                     onClick={() => onSelectStyle(template.id)}
-                    className={`w-full rounded-[0.9rem] border p-2.5 text-left shutter-transition sm:rounded-[1rem] sm:p-3 ${
+                    className={`w-full rounded-xl border p-2.5 text-left shutter-transition sm:p-3 ${
                       isSelected
-                        ? 'border-secondary/25 bg-secondary/10 shadow-sm'
-                        : 'border-outline-variant/15 bg-surface/62 hover:border-secondary/20 hover:bg-surface/72'
+                        ? 'border-secondary/24 bg-secondary/10'
+                        : 'border-transparent bg-transparent hover:bg-white/5'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3">
@@ -217,12 +213,12 @@ export function EditorView({
           <button
             type="button"
             onClick={onApply}
-            className="w-full rounded-[1.05rem] border border-secondary/20 bg-primary py-3 text-sm font-headline font-bold uppercase tracking-[0.16em] text-surface shadow-md shutter-transition hover:opacity-90 active:scale-[0.99] sm:rounded-[1.2rem] sm:py-3.5"
+            className="studio-sheen w-full rounded-xl border border-secondary/20 bg-primary py-3 text-sm font-headline font-bold uppercase tracking-[0.16em] text-background shadow-[0_16px_42px_rgba(139,223,255,0.14)] shutter-transition hover:-translate-y-0.5 hover:opacity-95 active:scale-[0.99] sm:py-3.5"
           >
             {dict.applyBtn}
           </button>
         </aside>
       </section>
-    </motion.div>
+    </div>
   );
 }

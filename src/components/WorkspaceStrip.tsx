@@ -25,27 +25,26 @@ export function WorkspaceStrip({
   const isVertical = orientation === 'vertical';
 
   return (
-    <section className="console-panel relative overflow-hidden rounded-[1.35rem] p-3 sm:rounded-[1.75rem] sm:p-4">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/65 to-transparent" />
+    <section className="flow-surface relative overflow-hidden rounded-2xl p-3 sm:p-4">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h3 className="font-mono text-[10px] font-medium uppercase tracking-[0.28em] text-secondary">{title}</h3>
-          <p className="mt-2 text-xs text-outline">{items.length}</p>
+          <p className="mt-2 font-mono text-xs text-outline">{items.length}</p>
         </div>
       </div>
 
-      <div className={isVertical ? 'flex gap-2 overflow-x-auto pb-1 xl:max-h-[calc(100vh-13rem)] xl:flex-col xl:overflow-y-auto xl:pb-0 xl:pr-1' : 'flex gap-2 overflow-x-auto pb-1'}>
+      <div className={isVertical ? 'mt-3 flex gap-2 overflow-x-auto pb-1 xl:max-h-[calc(100vh-13rem)] xl:flex-col xl:overflow-y-auto xl:pb-0 xl:pr-1' : 'mt-3 flex gap-2 overflow-x-auto pb-1'}>
         {items.map((item) => {
           const isSelected = item.id === selectedImageId;
           return (
             <div
               key={item.id}
-              className={`group relative overflow-hidden rounded-[1.15rem] border text-left transition-all ${
+              className={`group relative overflow-hidden rounded-xl border text-left transition-all duration-300 ${
                 isVertical ? 'w-[92px] shrink-0 sm:w-[104px] md:w-[112px] xl:w-full' : 'w-[92px] shrink-0 sm:w-[104px] md:w-[112px]'
               } ${
                 isSelected
-                  ? 'border-secondary/40 bg-surface/85 shadow-sm'
-                  : 'border-outline-variant/15 bg-surface-container-lowest/75 hover:border-secondary/25 hover:bg-surface/80'
+                  ? 'border-secondary/30 bg-secondary/10'
+                  : 'border-transparent bg-transparent hover:bg-white/5'
               }`}
             >
               <button
@@ -53,7 +52,7 @@ export function WorkspaceStrip({
                 onClick={() => onSelectImage(item.id)}
                 className={`block w-full text-left ${isVertical ? 'xl:flex xl:items-center xl:gap-3 xl:p-2' : ''}`}
               >
-                <div className={`overflow-hidden bg-surface-container-low ${isVertical ? 'aspect-[3/4] xl:h-20 xl:w-16 xl:shrink-0 xl:rounded-[0.9rem] 2xl:h-24 2xl:w-20' : 'aspect-[3/4]'}`}>
+                <div className={`overflow-hidden bg-surface-container-low ${isVertical ? 'aspect-[3/4] xl:h-20 xl:w-16 xl:shrink-0 xl:rounded-lg 2xl:h-24 2xl:w-20' : 'aspect-[3/4]'}`}>
                   <img
                     src={item.image.objectUrl ?? item.image.src}
                     alt={item.image.name}
@@ -71,7 +70,7 @@ export function WorkspaceStrip({
                   type="button"
                   onClick={() => onDeleteItem(item.id)}
                   disabled={deletingImageId === item.id}
-                  className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border border-outline-variant/20 bg-surface-container-high/80 text-primary backdrop-blur-sm transition-colors hover:border-secondary/25 hover:bg-surface-container-highest disabled:cursor-wait disabled:opacity-60"
+                  className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-lg border border-outline-variant/20 bg-surface-container-high/80 text-primary opacity-0 backdrop-blur-sm transition-all hover:border-secondary/25 hover:bg-surface-container-highest group-hover:opacity-100 disabled:cursor-wait disabled:opacity-60"
                   aria-label={deleteLabel}
                 >
                   <Trash2 size={11} />
